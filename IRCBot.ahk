@@ -5,6 +5,10 @@
 #Include Class_RichEdit.ahk
 #Include Json.ahk
 #Include Utils.ahk
+#Include TTS.ahk
+
+#Include %A_ScriptDir%
+
 
 SettingsFile := A_ScriptDir "\Settings.ini"
 
@@ -12,46 +16,15 @@ if !(Settings := Ini_Read(SettingsFile))
 {
 	Settings =
 	( LTrim
-	Greetings = Hey|Hi|Hello
-	EightBall = Yes,No,Maybe
-	Trigger = !
 	ShowHex = 0
 	
 	[Server]
 	Addr = chat.freenode.net
 	Port = 6667
-	Nicks = MyRC_Bot,MyRC
-	User =
-	Pass =
-	Channels = #ahkscript,#botters-test
-	
-	[Bitly]
-	login =
-	apiKey =
-	
-	[Wolfram]
-	AppID =
-	
-	[Aliases]
-	Script = Search site:ahkscript.org/boards/
-	Ahk = Search site:autohotkey.com/board/
-	Forum = Search site:ahkscript.org/boards/ OR site:autohotkey.com/board/
-	More = Search More
-	gDocs = Search site:ahkscript.org/docs/
-	Google = Search
-	joedf = Flip
-	g = Search
-	p = Pastebin
-	Paste = Pastebin
-	8 = EightBall
-	Eight = EightBall
-	Upgrade = Update
-	Install = Update
-	Installer = Update
-	Source = Say My source can be found at http://github.com/G33kDude/MyRC
-	Forums = Say AutoHotkey forum: http://ahkscript.org/boards/
-	Stuff =
-	Stuffstats =
+	Nicks = ;Blank
+	User = ;Blank
+	Pass = ;Blank
+	Channels = ;Blank
 	)
 	
 	File := FileOpen(SettingsFile, "w")
@@ -62,6 +35,13 @@ if !(Settings := Ini_Read(SettingsFile))
 	ExitApp
 }
 
+;;TTS Settings and Options
+Sb_Menu("Chat")
+
+
+obj_TTSVoice := Fn_TTSCreateVoice("Microsoft Anna")
+;Fn_TTS(obj_TTSVoice, "Speak", "alf")
+
 if (Settings.Bitly.login)
 	Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
 
@@ -71,14 +51,14 @@ Nicks := StrSplit(Server.Nicks, ",", " `t")
 Gui, Margin, 5, 5
 Gui, Font, s9, Lucida Console
 Gui, +HWNDhWnd +Resize
-Gui, Add, Edit, w1000 h300 ReadOnly vLog HWNDhLog
+;Gui, Add, Edit, w1000 h300 ReadOnly vLog HWNDhLog ;Former raw view
 
 ;Gui, Add, Edit, xm y310 w1000 h299 ReadOnly vChat HWNDhChat
 Chat := new RichEdit(1, "xm y310 w1000 h299 vChat")
-Chat.SetBkgndColor(0x3F3F3F)
+;Chat.SetBkgndColor(0x3F3F3F)
 Chat.SetOptions(["READONLY"], "Set")
-Font := {"Name":"Courier New","Color":0xDCDCCC,"Size":9}
-Colors := ["DCDCCC", "262626"
+Font := {"Name":"Courier New","Color":000000ff,"Size":9}
+Colors := ["000000ff", "262626"
 , "6C6C9C", "9ECE9E"
 , "E89393", "BC6C4C"
 , "BC6C9C", "DC8C6C"
@@ -141,9 +121,9 @@ OnTCPAccept()
 }
 
 GuiSize:
-EditH := Floor((A_GuiHeight-40) / 2)
+EditH := Floor((A_GuiHeight-40))
 EditW := A_GuiWidth - (15 + 150)
-ChatY := 10 + EditH
+ChatY := 6 + 0
 ListViewX := A_GuiWidth - 155
 ListViewH := A_GuiHeight - 35
 
@@ -152,7 +132,7 @@ TextW := A_GuiWidth - (20 + 145 + 45) ; Margin + DDL + Send
 SendX := A_GuiWidth - 50
 SendY := BarY - 1
 
-GuiControl, Move, Log, x5 y5 w%EditW% h%EditH%
+;GuiControl, Move, Log, x5 y5 w%EditW% h%EditH%
 GuiControl, Move, Chat, x5 y%ChatY% w%EditW% h%EditH%
 GuiControl, Move, ListView, x%ListViewX% y5 w150 h%ListViewH%
 GuiControl, Move, Channel, x5 y%BarY% w145 h20
@@ -204,6 +184,8 @@ Messages := IRC.SendPRIVMSG(Channel, Message)
 for each, Message in Messages
 	IRC.onPRIVMSG(IRC.Nick,IRC.User,IRC.Host,"PRIVMSG",[Channel],Message,"")
 return
+
+
 
 GuiClose:
 ExitSub:
@@ -322,6 +304,8 @@ class Bot extends IRC
 		Channel := Params[1]
 		AppendChat(Channel " <" NickColor(Nick) "> " Msg)
 		
+		global obj_TTSVoice
+		Fn_TTS(obj_TTSVoice, "Speak", Msg)
 		GreetEx := "i)^((?:" this.Greetings
 		. "),?)\s.*" RegExEscape(this.Nick)
 		. "(?P<Punct>[!?.]*).*$"
@@ -339,7 +323,7 @@ class Bot extends IRC
 		
 		if Msg contains % this.Nick
 		{
-			SoundBeep
+			;SoundBeep
 			TrayTip, % this.Nick, % "<" Nick "> " Msg
 		}
 		
@@ -352,17 +336,11 @@ class Bot extends IRC
 			,"Cmd":Cmd,"Params":Params,"Msg":Msg,"Data":Data}
 			,"Plugin":{"Name":Match1,"Param":Match2,"Match":Match},"Channel":Params[1]})
 			
-			if !FileExist(File)
-				File := "plugins\Default.ahk"
-			
-			Run(A_AhkPath, File, Param)
+			;if !FileExist(File)
+			;	File := "plugins\Default.ahk"
+			;
+			;Run(A_AhkPath, File, Param)
 		}
-	}
-	
-	OnPING(Nick,User,Host,Cmd,Params,Msg,Data)
-	{
-		Param := Json_FromObj({"Channel":"#ahkscript"})
-		Run(A_AhkPath, "plugins\NewPost.ahk", Param)
 	}
 	
 	OnDisconnect(Socket)
@@ -430,7 +408,6 @@ AppendLog(Message)
 	global hLog
 	
 	Message := RegExReplace(Message, "\R", "") "`r`n"
-	
 	GuiControl, -Redraw, %hLog%
 	
 	VarSetCapacity(Sel, 16, 0)
@@ -569,4 +546,33 @@ NickColor(Nick)
 		Color := Mod(Sum, 12) + 2
 	
 	return Chr(2) . Chr(3) . Color . Nick . Chr(3) . Chr(2)
+}
+
+;;TTS Selected
+SelectedSpeach:
+obj_TTSVoice := Fn_TTSCreateVoice(A_ThisMenuItem)
+Settings_TTSVoice = %A_ThisMenuItem%
+IniWrite, %Settings_TTSVoice%, settings.ini, Settings, TTSVoice
+Return
+
+
+Sb_Menu(TipLabel)
+{
+global
+
+Voice := ComObjCreate("SAPI.SpVoice")
+AllVoices := Fn_TTS(Voice, "GetVoices")
+;Voice := 
+
+Loop, parse, AllVoices, `n, `r
+{
+Menu, SpeachMenu, Add, %A_LoopField%, SelectedSpeach
+}
+
+Menu, Tray, Tip , %TipLabel%
+Menu, Tray, NoStandard
+Menu, Tray, Add, Choose TTS Voice, :SpeachMenu
+Menu, Tray, Add
+;Menu, Tray, Add, About, About
+;Menu, Tray, Add, Quit, Quit
 }
