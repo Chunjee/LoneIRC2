@@ -319,7 +319,7 @@ class Bot extends IRC
 	onPRIVMSG(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		Channel := Params[1]
-		AppendChat(Channel " <" NickColor(Nick) "> " Msg)
+		AppendChat(NickColor(Nick) ": " Msg)
 		
 		global obj_TTSVoice
 		Fn_TTS(obj_TTSVoice, "Speak", Msg)
@@ -456,8 +456,12 @@ AppendChat(Message)
 	Message := RegExReplace(Message, "\R", "") "`n"
 	
 	FormatTime, Stamp,, [hh:mm]
-	RTF := ToRTF(Stamp " " Message, Colors, Font)
-	
+		If (TimeStamps = 1) {
+		RTF := ToRTF(Stamp " " Message, Colors, Font)
+		} Else {
+		RTF := ToRTF(Message, Colors, Font)
+		}
+		
 	GuiControl, -Redraw, % Chat.hWnd
 	
 	Sel := Chat.GetSel()
