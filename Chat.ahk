@@ -30,9 +30,13 @@ if !(Settings := Ini_Read(SettingsFile))
 	File := FileOpen(SettingsFile, "w")
 	File.Write(Settings), File.Close()
 	
-	MsgBox, There was a problem reading your Settings.ini file. Please fill in the newly generated Settings.ini
-	
+	MsgBox, There was a problem reading your Settings.ini file. Please fill in the newly generated Settings.ini before running again.
 	ExitApp
+}
+
+If (Server.Addr = "") {
+MsgBox, Server addess could not be understood; check Settings.ini before running again.
+ExitApp
 }
 
 ;;TTS Settings and Options
