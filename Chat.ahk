@@ -1,4 +1,15 @@
-﻿#NoEnv
+﻿;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
+; Description
+;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
+; Simple IRC Client
+;
+Version_Name = v0.0 Prototype
+The_ProjectName = Lone IRC
+
+;~~~~~~~~~~~~~~~~~~~~~
+;Compile Options
+;~~~~~~~~~~~~~~~~~~~~~
+#NoEnv
 #Include %A_LineFile%\..\lib
 #Include Socket.ahk
 #Include IRCClass.ahk
@@ -7,12 +18,13 @@
 #Include Utils.ahk
 #Include TTS.ahk
 
-#Include %A_ScriptDir%
+;#Include %A_ScriptDir%
 
-
+;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
+;PREP AND STARTUP
+;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 SettingsFile := A_ScriptDir "\Settings.ini"
-
-if !(Settings := Ini_Read(SettingsFile))
+If !(Settings := Ini_Read(SettingsFile))
 {
 	Settings =
 	( LTrim
@@ -34,17 +46,17 @@ if !(Settings := Ini_Read(SettingsFile))
 	ExitApp
 }
 
-If (Server.Addr = "") {
+If (Settings.Server.Addr = "") {
 MsgBox, Server addess could not be understood; check Settings.ini before running again.
 ExitApp
 }
 
+;Create Trayicon Menu
+Sb_Menu(The_ProjectName)
+
 ;;TTS Settings and Options
-Sb_Menu("Chat")
-
-
 obj_TTSVoice := Fn_TTSCreateVoice("Microsoft Anna")
-;Fn_TTS(obj_TTSVoice, "Speak", "alf")
+
 
 if (Settings.Bitly.login)
 	Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
@@ -55,9 +67,10 @@ Nicks := StrSplit(Server.Nicks, ",", " `t")
 Gui, Margin, 5, 5
 Gui, Font, s9, Lucida Console
 Gui, +HWNDhWnd +Resize
-;Gui, Add, Edit, w1000 h300 ReadOnly vLog HWNDhLog ;Former raw view
 
+;Gui, Add, Edit, w1000 h300 ReadOnly vLog HWNDhLog ;Former raw view
 ;Gui, Add, Edit, xm y310 w1000 h299 ReadOnly vChat HWNDhChat
+
 Chat := new RichEdit(1, "xm y310 w1000 h299 vChat")
 ;Chat.SetBkgndColor(0x3F3F3F)
 Chat.SetOptions(["READONLY"], "Set")
@@ -125,15 +138,15 @@ OnTCPAccept()
 }
 
 GuiSize:
-EditH := Floor((A_GuiHeight-40))
+EditH := Floor((A_GuiHeight-40)) ;Main Window
 EditW := A_GuiWidth - (15 + 150)
-ChatY := 6 + 0
-ListViewX := A_GuiWidth - 155
+ChatY := 6 + 0 ; Old view?
+ListViewX := A_GuiWidth - 155 ;Users List
 ListViewH := A_GuiHeight - 35
 
-BarY := A_GuiHeight - 25
+BarY := A_GuiHeight - 25 ;Text Input
 TextW := A_GuiWidth - (20 + 145 + 45) ; Margin + DDL + Send
-SendX := A_GuiWidth - 50
+SendX := A_GuiWidth - 50 ;Send Button
 SendY := BarY - 1
 
 ;GuiControl, Move, Log, x5 y5 w%EditW% h%EditH%
@@ -572,11 +585,34 @@ Loop, parse, AllVoices, `n, `r
 {
 Menu, SpeachMenu, Add, %A_LoopField%, SelectedSpeach
 }
-
 Menu, Tray, Tip , %TipLabel%
 Menu, Tray, NoStandard
-Menu, Tray, Add, Choose TTS Voice, :SpeachMenu
+Menu, Tray, Add, %TipLabel%, menu_About
+;Menu, tray, Icon, %TipLabel%, %A_ScriptDir%\%A_ScriptName%, 1, 0
 Menu, Tray, Add
-;Menu, Tray, Add, About, About
-;Menu, Tray, Add, Quit, Quit
+Menu, Tray, Add, Choose TTS Voice, :SpeachMenu
+Menu, tray, add, TTS, menu_MenuHandler
+Menu, tray, ToggleCheck, TTS
+Menu, Tray, Add, About, menu_About
+Menu, Tray, Add, Quit, menu_Quit
+Return
+
+menu_About:
+Msgbox, Simple IRC
+Return
+
+menu_Quit:
+ExitApp
 }
+
+menu_MenuHandler:
+Menu, tray, ToggleCheck, TTS
+If(Toggle_TTS = True)
+{
+Toggle_TTS := False
+}
+Else If(Toggle_TTS = False || Toggle_TTS = "")
+{
+Toggle_TTS := True
+}
+Return
