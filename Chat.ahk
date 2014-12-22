@@ -31,12 +31,17 @@ If !(Settings := Ini_Read(SettingsFile))
 	ShowHex = 0
 	
 	[Server]
-	Addr = chat.freenode.net
+	Addr = avarice.wa.us.synirc.net
 	Port = 6667
-	Nicks = ;Blank
-	User = ;Blank
-	Pass = ;Blank
-	Channels = ;Blank
+	Nicks = 
+	User = 
+	Pass = none
+	Channels = #LoneIRC
+	
+	[Settings]
+	TTSVoice = 
+	TTSFlag = 1
+	TimeStampsFlag = 1
 	)
 	
 	File := FileOpen(SettingsFile, "w")
@@ -58,12 +63,26 @@ Sb_Menu(The_ProjectName)
 obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
 
 
-if (Settings.Bitly.login)
+	If (Settings.Bitly.login) {
 	Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
-
+	}
+	
+	;No Username set, have user choose and save
+	While (Settings.Server.Nicks = "") {
+	InputBox, Raw_UserInput, %The_ProjectName%, % A_Space . "       " . "Choose UserName",, 200, 120,
+	Settings.Server.Nicks := Raw_UserInput
+	Settings.Server.User := Raw_UserInput
+		If (Settings.Server.Nicks != "") {
+		IniWrite, % Settings.Server.Nicks, Settings.ini, Server, Nicks
+		IniWrite, % Settings.Server.User, Settings.ini, Server, User
+		}
+	}
+	
+;Settings and Nick(s) to global simple vars
 Server := Settings.Server
 Nicks := StrSplit(Server.Nicks, ",", " `t")
-
+	
+	
 Gui, Margin, 5, 5
 Gui, Font, s9, Lucida Console
 Gui, +HWNDhWnd +Resize
@@ -97,7 +116,7 @@ Gui, Add, Button, yp-1 xp940 w45 h22 vSend gSend Default, SEND
 Gui, Show
 
 OnMessage(0x4E, "WM_NOTIFY")
-
+	
 IRC := new Bot(Settings.Trigger, Settings.Greetings, Settings.Aliases, Nicks, Settings.ShowHex)
 IRC.Connect(Server.Addr, Server.Port, Nicks[1], Server.User, Server.Nick, Server.Pass)
 IRC.SendJOIN(StrSplit(Server.Channels, ",", " `t")*)
@@ -583,7 +602,7 @@ global
 
 Voice := ComObjCreate("SAPI.SpVoice")
 AllVoices := Fn_TTS(Voice, "GetVoices")
-;Voice := 
+Voice := 
 
 Loop, parse, AllVoices, `n, `r
 {
