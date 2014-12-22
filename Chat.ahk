@@ -21,7 +21,7 @@ The_ProjectName = Lone IRC
 ;#Include %A_ScriptDir%
 
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
-;PREP AND STARTUP
+;Prep and StartUp
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 SettingsFile := A_ScriptDir "\Settings.ini"
 If !(Settings := Ini_Read(SettingsFile))
@@ -47,7 +47,7 @@ If !(Settings := Ini_Read(SettingsFile))
 }
 
 If (Settings.Server.Addr = "") {
-MsgBox, Server addess could not be understood; check Settings.ini before running again.
+MsgBox, Server address could not be understood. Check Settings.ini before running again.
 ExitApp
 }
 
@@ -573,7 +573,7 @@ NickColor(Nick)
 SelectedSpeach:
 obj_TTSVoice := Fn_TTSCreateVoice(A_ThisMenuItem)
 Settings_TTSVoice = %A_ThisMenuItem%
-IniWrite, %Settings_TTSVoice%, settings.ini, Settings, TTSVoice
+IniWrite, %Settings_TTSVoice%, Settings.ini, Settings, TTSVoice
 Return
 
 
@@ -587,16 +587,21 @@ AllVoices := Fn_TTS(Voice, "GetVoices")
 
 Loop, parse, AllVoices, `n, `r
 {
-Menu, SpeachMenu, Add, %A_LoopField%, SelectedSpeach
+Menu, Speach_Menu, Add, %A_LoopField%, SelectedSpeach
 }
 Menu, Tray, Tip , %TipLabel%
 Menu, Tray, NoStandard
 Menu, Tray, Add, %TipLabel%, menu_About
 ;Menu, tray, Icon, %TipLabel%, %A_ScriptDir%\%A_ScriptName%, 1, 0
 Menu, Tray, Add
-Menu, Tray, Add, Choose TTS Voice, :SpeachMenu
-Menu, tray, add, TTS, menu_MenuHandler
-Menu, tray, ToggleCheck, TTS
+Menu, Tray, Add, Choose TTS Voice, :Speach_Menu
+
+Menu, Options_Menu, Add, TTS, menu_Toggle
+Menu, Options_Menu, Add, TimeStamps, menu_Toggle
+Menu, Tray, Add, Options, :Options_Menu
+Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
+Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
+
 Menu, Tray, Add, About, menu_About
 Menu, Tray, Add, Quit, menu_Quit
 Return
@@ -609,14 +614,31 @@ menu_Quit:
 ExitApp
 }
 
-menu_MenuHandler:
-Menu, tray, ToggleCheck, TTS
-If(Toggle_TTS = True)
-{
-Toggle_TTS := False
-}
-Else If(Toggle_TTS = False || Toggle_TTS = "")
-{
-Toggle_TTS := True
-}
+menu_Toggle:
+Fn_CheckmarkToggle(A_ThisMenuItem, A_ThisMenu)
 Return
+
+Fn_CheckmarkInitialize(para_MenuItem, para_MenuName, para_Setting := 0)
+{
+Msgbox, % para_Setting
+	If (para_Setting = 1) {
+	msgbox, yes loop  %para_MenuItem%
+	Menu, %para_MenuName%, Check, %para_MenuItem%
+	} Else {
+	msgbox, no loop for  %para_MenuItem%
+	Menu, %para_MenuName%, UnCheck, %para_MenuItem%
+	}
+}
+
+Fn_CheckmarkToggle(MenuItem, MenuName)
+{
+global
+%MenuItem%Flag := !%MenuItem%Flag ; Toggles the variable every time the function is called
+	If (%MenuItem%Flag) {
+	Menu, %MenuName%, Check, %MenuItem%
+	} Else {
+	Menu, %MenuName%, UnCheck, %MenuItem%
+	}
+	NewSetting := %MenuItem%Flag
+	IniWrite, %NewSetting%, Settings.ini, Settings, %MenuItem%Flag
+}
