@@ -55,7 +55,7 @@ ExitApp
 Sb_Menu(The_ProjectName)
 
 ;;TTS Settings and Options
-obj_TTSVoice := Fn_TTSCreateVoice("Microsoft Anna")
+obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
 
 
 if (Settings.Bitly.login)
@@ -588,7 +588,15 @@ AllVoices := Fn_TTS(Voice, "GetVoices")
 Loop, parse, AllVoices, `n, `r
 {
 Menu, Speach_Menu, Add, %A_LoopField%, SelectedSpeach
+	If (A_Index = 1) {
+	FirstVoice := A_LoopField
+	}
 }
+	;Write New Voice to settings if no voice has been selected
+	If (Settings.Settings.TTSVoice = "") {
+	Settings.Settings.TTSVoice := FirstVoice
+	IniWrite, % Settings.Settings.TTSVoice, Settings.ini, Settings, TTSVoice
+	}
 Menu, Tray, Tip , %TipLabel%
 Menu, Tray, NoStandard
 Menu, Tray, Add, %TipLabel%, menu_About
@@ -620,12 +628,9 @@ Return
 
 Fn_CheckmarkInitialize(para_MenuItem, para_MenuName, para_Setting := 0)
 {
-Msgbox, % para_Setting
 	If (para_Setting = 1) {
-	msgbox, yes loop  %para_MenuItem%
 	Menu, %para_MenuName%, Check, %para_MenuItem%
 	} Else {
-	msgbox, no loop for  %para_MenuItem%
 	Menu, %para_MenuName%, UnCheck, %para_MenuItem%
 	}
 }
