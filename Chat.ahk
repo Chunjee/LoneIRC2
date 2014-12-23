@@ -10,6 +10,8 @@ The_ProjectName = Lone IRC
 ;Compile Options
 ;~~~~~~~~~~~~~~~~~~~~~
 #NoEnv
+#SingleInstance Force
+
 #Include %A_LineFile%\..\lib
 #Include Socket.ahk
 #Include IRCClass.ahk
@@ -35,7 +37,7 @@ If !(Settings := Ini_Read(SettingsFile))
 	Port = 6667
 	Nicks = 
 	User = 
-	Pass = none
+	Pass = 
 	Channels = #LoneIRC
 	
 	[Settings]
@@ -341,7 +343,11 @@ class Bot extends IRC
 		AppendChat(NickColor(Nick) ": " Msg)
 		
 		global obj_TTSVoice
-		Fn_TTS(obj_TTSVoice, "Speak", Msg)
+		global Settings
+
+		If (Settings.Settings.TTSFlag = 1) {
+			Fn_TTS(obj_TTSVoice, "Speak", Msg)
+			}
 		GreetEx := "i)^((?:" this.Greetings
 		. "),?)\s.*" RegExEscape(this.Nick)
 		. "(?P<Punct>[!?.]*).*$"
@@ -474,8 +480,11 @@ AppendChat(Message)
 	
 	Message := RegExReplace(Message, "\R", "") "`n"
 	
+	global Settings
 	FormatTime, Stamp,, [hh:mm]
-		If (TimeStamps = 1) {
+	
+		;SEND to chat window with or without TimeStamp
+		If (Settings.Settings.TimeStampsFlag = 1) {
 		RTF := ToRTF(Stamp " " Message, Colors, Font)
 		} Else {
 		RTF := ToRTF(Message, Colors, Font)
@@ -665,4 +674,5 @@ global
 	}
 	NewSetting := %MenuItem%Flag
 	IniWrite, %NewSetting%, Settings.ini, Settings, %MenuItem%Flag
+	Settings := Ini_Read(SettingsFile)
 }
