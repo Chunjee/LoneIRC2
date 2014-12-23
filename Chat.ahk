@@ -628,7 +628,9 @@ Menu, Speach_Menu, Add, %A_LoopField%, SelectedSpeach
 Menu, Tray, Tip , %TipLabel%
 Menu, Tray, NoStandard
 Menu, Tray, Add, %TipLabel%, menu_About
-;Menu, tray, Icon, %TipLabel%, %A_ScriptDir%\%A_ScriptName%, 1, 0
+	If (A_IsCompiled) {
+	Menu, tray, Icon, %TipLabel%, %A_ScriptDir%\%A_ScriptName%, 1, 0
+	}
 Menu, Tray, Add
 Menu, Tray, Add, Choose TTS Voice, :Speach_Menu
 
@@ -643,7 +645,7 @@ Menu, Tray, Add, Quit, menu_Quit
 Return
 
 menu_About:
-Msgbox, Simple IRC
+Msgbox, %The_ProjectName% - %Version_Name%
 Return
 
 menu_Quit:
