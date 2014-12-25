@@ -113,6 +113,7 @@ Fn_TTS(oVoice, command, param1="", param2="") {		; by Learning one. For AHK_L. T
 		SpStream.Close()
 		oVoice.AudioOutputStream := oldAOS
 		oVoice.AllowAudioOutputFormatChangesOnNextSet := oldAAOFCONS
+		Return %param2%
 	}
 }	
  Fn_TTSCreateVoice(VoiceName="", VoiceRate="", VoiceVolume="", VoicePitch="") {		; by Learning one. For AHK_L.

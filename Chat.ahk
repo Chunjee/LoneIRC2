@@ -3,8 +3,8 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-Version_Name = v0.0 Prototype
-The_ProjectName = Lone IRC
+Version_Name = v1.0
+The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
@@ -25,6 +25,8 @@ The_ProjectName = Lone IRC
 ;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ;Prep and StartUp
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
+Sb_InstallFiles()
+
 SettingsFile := A_ScriptDir "\Settings.ini"
 If !(Settings := Ini_Read(SettingsFile))
 {
@@ -68,11 +70,12 @@ obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
 	If (Settings.Bitly.login) {
 	Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
 	}
-	
 	;No Username set, have user choose and save
+	
 	While (Settings.Server.Nicks = "") {
 	InputBox, Raw_UserInput, %The_ProjectName%, % A_Space . "       " . "Choose UserName",, 200, 120,
-	Settings.Server.Nicks := Raw_UserInput
+	NickNames := Raw_UserInput . ", " . Raw_UserInput . "-"
+	Settings.Server.Nicks := NickNames
 	Settings.Server.User := Raw_UserInput
 		If (Settings.Server.Nicks != "") {
 		IniWrite, % Settings.Server.Nicks, Settings.ini, Server, Nicks
@@ -346,7 +349,11 @@ class Bot extends IRC
 		global Settings
 
 		If (Settings.Settings.TTSFlag = 1) {
-			Fn_TTS(obj_TTSVoice, "Speak", Msg)
+			;Fn_TTS(obj_TTSVoice, "Speak", Msg)
+			
+			;Separate exe speak.exe
+			TempVoice := Settings.Settings.TTSVoice
+			Run, %comspec% /c %A_ScriptDir%\Speak\Speak.exe "%TempVoice%" "%Msg%",, Hide
 			}
 		GreetEx := "i)^((?:" this.Greetings
 		. "),?)\s.*" RegExEscape(this.Nick)
@@ -677,4 +684,10 @@ global
 	NewSetting := %MenuItem%Flag
 	IniWrite, %NewSetting%, Settings.ini, Settings, %MenuItem%Flag
 	Settings := Ini_Read(SettingsFile)
+}
+
+Sb_InstallFiles()
+{
+FileCreateDir, %A_ScriptDir%\Speak\
+FileInstall, Speak\Speak.exe, %A_ScriptDir%\Speak\Speak.exe, 1
 }
