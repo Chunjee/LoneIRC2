@@ -100,10 +100,10 @@ Chat := new RichEdit(1, "xm y310 w1000 h299 vChat")
 Chat.SetOptions(["READONLY"], "Set")
 Font := {"Name":"Courier New","Color":000000ff,"Size":9}
 Colors := ["000000ff", "262626"
-, "6C6C9C", "9ECE9E"
-, "E89393", "BC6C4C"
-, "BC6C9C", "DC8C6C"
-, "F8F893", "CBECD0"
+, "6C6C9C", "4CF3F2"
+, "E8930B", "BC6C4C"
+, "BC6C9C", "361A56"
+, "368093", "CB130F"
 , "80D4AA", "8CD0D3"
 , "C0BED1", "ECBCBC"
 , "8F8F8F", "DFDFDF"]
@@ -253,7 +253,7 @@ class Bot extends IRC
 	{
 		if (Nick == this.Nick)
 			this.UpdateDropDown(Params[1])
-		AppendChat(Params[1] " " NickColor(Nick) " has joined")
+		AppendChat(Params[1] "" NickColor(Nick) " has joined")
 		this.UpdateListView()
 	}
 	
@@ -267,7 +267,7 @@ class Bot extends IRC
 	{
 		if (Nick == this.Nick)
 			this.UpdateDropDown()
-		AppendChat(Params[1] " " NickColor(Nick) " has parted" (Msg ? " (" Msg ")" : ""))
+		AppendChat(Params[1] "" NickColor(Nick) " has left" (Msg ? " (" Msg ")" : ""))
 		this.UpdateListView()
 	}
 	
@@ -276,7 +276,7 @@ class Bot extends IRC
 		; Can't use nick, was already handled by class
 		if (User == this.User)
 			this.UpdateDropDown()
-		AppendChat(NickColor(Nick) " changed its nick to " NickColor(Msg))
+		AppendChat(NickColor(Nick) " changed their name to " NickColor(Msg))
 		this.UpdateListView()
 	}
 	
@@ -284,7 +284,7 @@ class Bot extends IRC
 	{
 		if (Params[2] == this.Nick)
 			this.UpdateDropDown()
-		AppendChat(Params[1] " " NickColor(Params[2]) " was kicked by " NickColor(Nick) " (" Msg ")")
+		AppendChat(Params[1] "" NickColor(Params[2]) " was kicked by " NickColor(Nick) " (" Msg ")")
 		this.UpdateListView()
 	}
 	
