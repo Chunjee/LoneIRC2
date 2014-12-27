@@ -3,7 +3,7 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-Version_Name = v1.0 RC
+Version_Name = v1.2
 The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -61,7 +61,8 @@ ExitApp
 }
 
 ;Create Trayicon Menu
-Sb_Menu(The_ProjectName)
+TrayTipText := The_ProjectName . " - " . Version_Name
+Sb_Menu(TrayTipText)
 
 ;;TTS Settings and Options
 obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
@@ -118,7 +119,7 @@ LV_ModifyCol(1, 130)
 Gui, Add, DropDownList, xm w145 h20 vChannel r20 gDropDown, % Nicks[1] "||"
 Gui, Add, Edit, w935 h20 x155 yp vMessage
 Gui, Add, Button, yp-1 xp940 w45 h22 vSend gSend Default, SEND
-Gui, Show
+Gui, Show, w800 h400, %The_ProjectName%
 
 OnMessage(0x4E, "WM_NOTIFY")
 	
@@ -337,7 +338,14 @@ class Bot extends IRC
 	
 	onNOTICE(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		AppendChat("-" NickColor(Nick) "- " Msg)
+		;Do not show notices from server
+		;AppendChat("-" NickColor(Nick) "- " Msg)
+			If (InStr(Msg,"Looking up your hostname")) {
+			AppendChat("Connecting...")
+			}
+			If (InStr(Msg,"Logon News")) {
+			AppendChat("Connected")
+			}
 	}
 	
 	onPRIVMSG(Nick,User,Host,Cmd,Params,Msg,Data)
@@ -433,7 +441,7 @@ class Bot extends IRC
 		Index := (Index >= this.DefaultNicks.MaxIndex()) ? 1 : Index+1
 		NewNick := this.DefaultNicks[Index]
 		
-		AppendChat(NickColor(this.Nick) " changed its nick to " NickColor(NewNick))
+		AppendChat(NickColor(this.Nick) " changed their nick to " NickColor(NewNick))
 		
 		this.SendNICK(newNick)
 		this.Nick := newNick
@@ -504,7 +512,7 @@ AppendChat(Message)
 	Chat.SetSel(Len, Len)
 	Chat.SetText(RTF, ["SELECTION"])
 	
-	if (Sel.S == Len)
+	if (1) ;(Sel.S == Len)
 	{
 		GuiControl, +Redraw, % Chat.hWnd
 		SendMessage(Chat.hWnd, WM_VSCROLL, SB_BOTTOM, 0)
@@ -515,7 +523,7 @@ AppendChat(Message)
 		GuiControl, +Redraw, % Chat.hWnd
 	}
 	
-	GuiControl, MoveDraw, % Chat.hWnd ; Updates scrollbar position in WINE
+	;GuiControl, MoveDraw, % Chat.hWnd ; Updates scrollbar position in WINE
 }
 
 SendMessage(hWnd, Msg, wParam, lParam)
