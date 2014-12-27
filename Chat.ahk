@@ -356,12 +356,17 @@ class Bot extends IRC
 		global obj_TTSVoice
 		global Settings
 
-		If (Settings.Settings.TTSFlag = 1) {
-			;Fn_TTS(obj_TTSVoice, "Speak", Msg)
+			If (Settings.Settings.TTSFlag = 1) {
+			TTSVar := Msg
+				If (InStr(TTSVar,"http")) {
+				TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")	
+				}
+			;Speak in exe itself
+			;Fn_TTS(obj_TTSVoice, "Speak", TTSVar)
 			
 			;Separate exe speak.exe
 			TempVoice := Settings.Settings.TTSVoice
-			Run, %comspec% /c %A_ScriptDir%\Speak\Speak.exe "%TempVoice%" "%Msg%",, Hide
+			Run, %comspec% /c %A_ScriptDir%\Speak\Speak.exe "%TempVoice%" "%TTSVar%",, Hide
 			}
 		GreetEx := "i)^((?:" this.Greetings
 		. "),?)\s.*" RegExEscape(this.Nick)
