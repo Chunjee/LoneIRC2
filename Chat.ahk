@@ -231,6 +231,7 @@ return
 
 GuiClose:
 ExitSub:
+IRC.SendQUIT("")
 ExitApp
 return
 
@@ -252,10 +253,12 @@ class Bot extends IRC
 	
 	onJOIN(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		if (Nick == this.Nick)
-			this.UpdateDropDown(Params[1])
-		AppendChat(Params[1] "" NickColor(Nick) " has joined")
-		this.UpdateListView()
+		if (Nick == this.Nick) {
+		this.UpdateDropDown(Params[1])
+		AppendChat("Connected")
+		}
+	AppendChat(Params[1] "" NickColor(Nick) " has joined")
+	this.UpdateListView()
 	}
 	
 	; RPL_ENDOFNAMES
@@ -343,9 +346,9 @@ class Bot extends IRC
 			If (InStr(Msg,"Looking up your hostname")) {
 			AppendChat("Connecting...")
 			}
-			If (InStr(Msg,"Logon News")) {
-			AppendChat("Connected")
-			}
+			;If (InStr(Msg,"Logon News")) {
+			;AppendChat(Msg)
+			;}
 	}
 	
 	onPRIVMSG(Nick,User,Host,Cmd,Params,Msg,Data)
@@ -358,6 +361,7 @@ class Bot extends IRC
 
 			If (Settings.Settings.TTSFlag = 1) {
 			TTSVar := Msg
+			StringReplace, TTSVar, TTSVar, `",, All ;string end "
 				If (InStr(TTSVar,"http")) {
 				TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")	
 				}
@@ -622,6 +626,8 @@ SelectedSpeach:
 obj_TTSVoice := Fn_TTSCreateVoice(A_ThisMenuItem)
 Settings_TTSVoice = %A_ThisMenuItem%
 IniWrite, %Settings_TTSVoice%, Settings.ini, Settings, TTSVoice
+;Re-Import Settings from file
+Settings := Ini_Read(SettingsFile)
 Return
 
 
@@ -696,6 +702,7 @@ global
 	}
 	NewSetting := %MenuItem%Flag
 	IniWrite, %NewSetting%, Settings.ini, Settings, %MenuItem%Flag
+	;Re-Import Settings from file
 	Settings := Ini_Read(SettingsFile)
 }
 
