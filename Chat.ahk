@@ -3,8 +3,8 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-Version_Name = v1.2
-The_ProjectName = LoneIRC
+Version_Name = v1.4.3
+The_ProjectName = Lone IRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
@@ -213,7 +213,7 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 		IRC.SendNICK(Match2)
 	else if (Match1 = "quit")
 	{
-		IRC.SendQUIT(Match2)
+		IRC.SendQUIT("Lone IRC")
 		ExitApp
 	}
 	else
@@ -256,8 +256,11 @@ class Bot extends IRC
 		if (Nick == this.Nick) {
 		this.UpdateDropDown(Params[1])
 		AppendChat("Connected")
+		Fn_TTS_Go("Connected")
+		} Else {
+		AppendChat(Params[1] "" NickColor(Nick) " has joined")
+		Fn_TTS_Go(Nick . " has joined")
 		}
-	AppendChat(Params[1] "" NickColor(Nick) " has joined")
 	this.UpdateListView()
 	}
 	
@@ -269,9 +272,10 @@ class Bot extends IRC
 	
 	onPART(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		if (Nick == this.Nick)
+		if (Nick == this.Nick) {
 			this.UpdateDropDown()
-		AppendChat(Params[1] "" NickColor(Nick) " has left" (Msg ? " (" Msg ")" : ""))
+		}
+		AppendChat(NickColor(Nick) . " has left " . Params[1] . "   " . (Msg ? " (" Msg ")" : ""))
 		this.UpdateListView()
 	}
 	
@@ -289,12 +293,18 @@ class Bot extends IRC
 		if (Params[2] == this.Nick)
 			this.UpdateDropDown()
 		AppendChat(Params[1] "" NickColor(Params[2]) " was kicked by " NickColor(Nick) " (" Msg ")")
+		Fn_TTS_Go("double rip " . Nick)
 		this.UpdateListView()
 	}
 	
 	onQUIT(Nick,User,Host,Cmd,Params,Msg,Data)
-	{
+	{	
+		If (Message != "") {
 		AppendChat(NickColor(Nick) " has quit (" Msg ")")
+		} Else {
+		AppendChat(NickColor(Nick) " has quit")
+		Fn_TTS_Go("rip " . Nick)
+		}
 		this.UpdateListView()
 	}
 	
@@ -356,22 +366,10 @@ class Bot extends IRC
 		Channel := Params[1]
 		AppendChat(NickColor(Nick) ": " Msg)
 		
-		global obj_TTSVoice
-		global Settings
-
-			If (Settings.Settings.TTSFlag = 1) {
-			TTSVar := Msg
-			StringReplace, TTSVar, TTSVar, `",, All ;string end "
-				If (InStr(TTSVar,"http")) {
-				TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")	
-				}
-			;Speak in exe itself
-			;Fn_TTS(obj_TTSVoice, "Speak", TTSVar)
-			
+			Fn_TTS_Go(Msg)
 			;Separate exe speak.exe
-			TempVoice := Settings.Settings.TTSVoice
-			Run, %comspec% /c %A_ScriptDir%\Speak\Speak.exe "%TempVoice%" "%TTSVar%",, Hide
-			}
+			;TempVoice := Settings.Settings.TTSVoice
+			;Run, %comspec% /c %A_ScriptDir%\Speak\Speak.exe "%TempVoice%" "%TTSVar%",, Hide
 		GreetEx := "i)^((?:" this.Greetings
 		. "),?)\s.*" RegExEscape(this.Nick)
 		. "(?P<Punct>[!?.]*).*$"
@@ -621,6 +619,27 @@ NickColor(Nick)
 	return Chr(2) . Chr(3) . Color . Nick . Chr(3) . Chr(2)
 }
 
+
+Fn_TTS_Go(para_Message)
+{
+global obj_TTSVoice
+global Settings
+;obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
+	If (Settings.Settings.TTSFlag = 1) {
+	TTSVar := para_Message
+	StringReplace, TTSVar, TTSVar, `",, All ;string end "
+	;AhkDllPath = %A_ScriptDir%\Data\AutoHotkey.dll
+	;hModule := DllCall("LoadLibrary","Str",AhkDllPath)
+	;DllCall(AhkDllPath "\ahkdll","Str","Speak.ahk","Str","","Str","","Cdecl UPTR")
+		If (InStr(TTSVar,"http")) {
+		TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")	
+		}
+	;Speak in exe itself
+	Fn_TTS(obj_TTSVoice, "Speak", TTSVar)
+	}
+Return
+}
+
 ;;TTS Selected
 SelectedSpeach:
 obj_TTSVoice := Fn_TTSCreateVoice(A_ThisMenuItem)
@@ -708,6 +727,6 @@ global
 
 Sb_InstallFiles()
 {
-FileCreateDir, %A_ScriptDir%\Speak\
-FileInstall, Speak\Speak.exe, %A_ScriptDir%\Speak\Speak.exe, 1
+;FileCreateDir, %A_ScriptDir%\Speak\
+;FileInstall, Speak\Speak.exe, %A_ScriptDir%\Speak\Speak.exe, 1
 }
