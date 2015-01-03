@@ -5,6 +5,9 @@ Data/
 *test*
 extra_temp/
 *DB.json*
+*.exe
+*.zip
+
 
 ## AHK
 Settings.ini
