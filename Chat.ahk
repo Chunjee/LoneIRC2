@@ -3,7 +3,7 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-Version_Name = v1.4.3
+Version_Name = v1.5
 The_ProjectName = Lone IRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -19,6 +19,7 @@ The_ProjectName = Lone IRC
 #Include Json.ahk
 #Include Utils.ahk
 #Include TTS.ahk
+#Include Chatlogs.ahk
 
 ;#Include %A_ScriptDir%
 
@@ -199,7 +200,7 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 	else if (Match1 = "me")
 	{
 		IRC.SendACTION(Channel, Match2)
-		AppendChat("(" NickColor(IRC.Nick) Match2 ")")
+		AppendChat("(" NickColor(IRC.Nick) " " Match2 ")")
 	}
 	else if (Match1 = "part")
 		IRC.SendPART(Channel, Match2)
@@ -332,6 +333,14 @@ class Bot extends IRC
 			LV_Add("", this.Prefix.Letters["v"] . Nick)
 		for Nick in this.GetMODE(Channel, "-ov") ; not opped or voiced
 			LV_Add("", Nick)
+			
+		;Remove any blank user lines
+			Loop % LV_GetCount() {
+			LV_GetText(RowText, A_Index, 1)
+				If (RowText = "") {
+				LV_Delete(A_Index)
+				}
+			}
 		GuiControl, +Redraw, ListView
 	}
 	
@@ -363,10 +372,18 @@ class Bot extends IRC
 	
 	onPRIVMSG(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
+	global Settings
+	
 		Channel := Params[1]
 		AppendChat(NickColor(Nick) ": " Msg)
 		
 			Fn_TTS_Go(Msg)
+			
+			;Send message to chatlog function
+			If (Settings.Settings.ChatLogs = 1) {
+			Fn_Chatlog(Nick, Msg)
+			}
+			
 			;Separate exe speak.exe
 			;TempVoice := Settings.Settings.TTSVoice
 			;Run, %comspec% /c %A_ScriptDir%\Speak\Speak.exe "%TempVoice%" "%TTSVar%",, Hide
@@ -503,11 +520,11 @@ AppendChat(Message)
 	Message := RegExReplace(Message, "\R", "") "`n"
 	
 	global Settings
-	FormatTime, Stamp,, [hh:mm]
-	
+	FormatTime, TimeStamp,, [hh:mm]
+		
 		;SEND to chat window with or without TimeStamp
 		If (Settings.Settings.TimeStampsFlag = 1) {
-		RTF := ToRTF(Stamp " " Message, Colors, Font)
+		RTF := ToRTF(TimeStamp " " Message, Colors, Font)
 		} Else {
 		RTF := ToRTF(Message, Colors, Font)
 		}
