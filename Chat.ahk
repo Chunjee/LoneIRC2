@@ -3,8 +3,8 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-Version_Name = v1.5
-The_ProjectName = Lone IRC
+The_Version = v1.5
+The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
@@ -62,7 +62,7 @@ ExitApp
 }
 
 ;Create Trayicon Menu
-TrayTipText := The_ProjectName . " - " . Version_Name
+TrayTipText := The_ProjectName . " - " . The_Version
 Sb_Menu(TrayTipText)
 
 ;;TTS Settings and Options
@@ -353,7 +353,7 @@ class Bot extends IRC
 	onCTCP(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		if (Cmd = "ACTION")
-			AppendChat(Params[1] " * " NickColor(Nick) " " Msg)
+			AppendChat("。" NickColor(Nick) . " " . Msg . "。")
 		else
 			this.SendCTCPReply(Nick, Cmd, "Zark off!")
 	}
@@ -408,20 +408,20 @@ class Bot extends IRC
 			TrayTip, % this.Nick, % "<" Nick "> " Msg
 		}
 		
-		; If it is a command
-		if (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match))
-		{
-			Match1 := RegExReplace(Match1, "i)[^a-z0-9]")
-			File := "plugins\" Match1 ".ahk"
-			Param := Json_FromObj({"PRIVMSG":{"Nick":Nick,"User":User,"Host":Host
-			,"Cmd":Cmd,"Params":Params,"Msg":Msg,"Data":Data}
-			,"Plugin":{"Name":Match1,"Param":Match2,"Match":Match},"Channel":Params[1]})
-			
+		; If it is a command DEPERCIATED from BOT FUNCTIONALITY
+		;if (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match))
+		;{
+			;Match1 := RegExReplace(Match1, "i)[^a-z0-9]")
+			;File := "plugins\" Match1 ".ahk"
+			;Param := Json_FromObj({"PRIVMSG":{"Nick":Nick,"User":User,"Host":Host
+			;,"Cmd":Cmd,"Params":Params,"Msg":Msg,"Data":Data}
+			;,"Plugin":{"Name":Match1,"Param":Match2,"Match":Match},"Channel":Params[1]})
+			;
 			;if !FileExist(File)
 			;	File := "plugins\Default.ahk"
 			;
 			;Run(A_AhkPath, File, Param)
-		}
+		;}
 	}
 	
 	OnDisconnect(Socket)
@@ -687,12 +687,13 @@ Menu, Speach_Menu, Add, %A_LoopField%, SelectedSpeach
 	Settings.Settings.TTSVoice := FirstVoice
 	IniWrite, % Settings.Settings.TTSVoice, Settings.ini, Settings, TTSVoice
 	}
-Menu, Tray, Tip , %TipLabel%
+Menu, Tray, Tip , %The_ProjectName%
 Menu, Tray, NoStandard
 Menu, Tray, Add, %TipLabel%, menu_About
 	If (A_IsCompiled) {
 	Menu, tray, Icon, %TipLabel%, %A_ScriptDir%\%A_ScriptName%, 1, 0
 	}
+
 Menu, Tray, Add
 Menu, Tray, Add, Choose TTS Voice, :Speach_Menu
 
@@ -707,7 +708,7 @@ Menu, Tray, Add, Quit, menu_Quit
 Return
 
 menu_About:
-Msgbox, %The_ProjectName% - %Version_Name%
+Msgbox, %The_ProjectName% - %The_Version% `nhttps://github.com/Chunjee/LoneIRC2
 Return
 
 menu_Quit:
