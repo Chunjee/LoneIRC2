@@ -3,7 +3,7 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-The_Version = v1.5
+The_Version = v1.5.1
 The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -200,7 +200,7 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 	else if (Match1 = "me")
 	{
 		IRC.SendACTION(Channel, Match2)
-		AppendChat("(" NickColor(IRC.Nick) " " Match2 ")")
+		AppendChat("。 " NickColor(IRC.Nick) " " Match2 " 。")
 	}
 	else if (Match1 = "part")
 		IRC.SendPART(Channel, Match2)
@@ -353,7 +353,7 @@ class Bot extends IRC
 	onCTCP(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		if (Cmd = "ACTION")
-			AppendChat("。" NickColor(Nick) . " " . Msg . "。")
+			AppendChat("。 " NickColor(Nick) . " " . Msg . " 。")
 		else
 			this.SendCTCPReply(Nick, Cmd, "Zark off!")
 	}
@@ -643,7 +643,7 @@ global obj_TTSVoice
 global Settings
 ;obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
 	If (Settings.Settings.TTSFlag = 1) {
-	TTSVar := para_Message
+	TTSVar :=  "。" . para_Message
 	StringReplace, TTSVar, TTSVar, `",, All ;string end "
 	;AhkDllPath = %A_ScriptDir%\Data\AutoHotkey.dll
 	;hModule := DllCall("LoadLibrary","Str",AhkDllPath)
