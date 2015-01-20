@@ -212,13 +212,12 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 		IRC._SendRaw(Match2)
 	else if (Match1 = "nick")
 		IRC.SendNICK(Match2)
-	else if (Match1 = "quit")
-	{
-		IRC.SendQUIT("Lone IRC")
-		ExitApp
+	else if (Match1 = "quit") {
+	IRC.SendQUIT("Lone IRC")
+	ExitApp
 	}
 	else
-		IRC.Log("ERROR: Unkown command " Match1)
+		IRC.Log("ERROR: Unknown command " Match1)
 	return
 }
 
@@ -293,7 +292,7 @@ class Bot extends IRC
 	{
 		if (Params[2] == this.Nick)
 			this.UpdateDropDown()
-		AppendChat(Params[1] "" NickColor(Params[2]) " was kicked by " NickColor(Nick) " (" Msg ")")
+		AppendChat(NickColor(Params[2]) " was kicked by " NickColor(Nick) " (" Msg ")")
 		Fn_TTS_Go("double rip " . Nick)
 		this.UpdateListView()
 	}
@@ -399,8 +398,8 @@ class Bot extends IRC
 		}
 		
 		; If it is being sent to us, but not by us
-		if (Channel == this.Nick && Nick != this.Nick)
-			this.SendPRIVMSG(Nick, "Hello to you, good sir")
+		;if (Channel == this.Nick && Nick != this.Nick)
+		;	this.SendPRIVMSG(Nick, "Hello to you, good sir")
 		
 		if Msg contains % this.Nick
 		{

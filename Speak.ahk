@@ -33,11 +33,12 @@ CLI_Arg2 = %2%
 ;Check that voice exists? Not yet implemented/needed?
 
 ;Create Object and send message
-obj_TTSVoice := Fn_TTSCreateVoice(Voice)
 Random, Rand, 1, 100
-SpeakFile := Fn_TTS(obj_TTSVoice, "SpeakToFile", Message, A_LineFile . A_Now . "_" . Rand . ".wav")
-SoundPlay, %SpeakFile%, WAIT
-SoundPlay, alf.mp3
+obj_TTSVoice := Fn_TTSCreateVoice(Voice)
+Fn_TTS(obj_TTSVoice, "Speak", Message)
+;SpeakFile := Fn_TTS(obj_TTSVoice, "SpeakToFile", Message, A_LineFile . A_Now . "_" . Rand . ".wav")
+;SoundPlay, %SpeakFile%, WAIT
+;SoundPlay, alf.mp3
 FileDelete, %SpeakFile%
 ExitApp
 
@@ -47,6 +48,5 @@ ExitApp
 
 StartUp()
 {
-#NoEnv
 #NoTrayIcon
 }
