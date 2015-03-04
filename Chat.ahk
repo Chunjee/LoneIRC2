@@ -1,4 +1,4 @@
-﻿;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
+;/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\
 ; Description
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
@@ -11,6 +11,8 @@ The_ProjectName = LoneIRC
 ;~~~~~~~~~~~~~~~~~~~~~
 #NoEnv
 #SingleInstance Force
+
+#Include util_arrays
 
 #Include %A_LineFile%\..\lib
 #Include Socket.ahk
@@ -27,6 +29,9 @@ The_ProjectName = LoneIRC
 ;Prep and StartUp
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 Sb_InstallFiles()
+Fn_EnableMultiVoice(True)
+
+;SetWorkingDir, %A_ScriptDir%\Data
 
 SettingsFile := A_ScriptDir "\Settings.ini"
 If !(Settings := Ini_Read(SettingsFile))
@@ -66,8 +71,23 @@ TrayTipText := The_ProjectName . " - " . The_Version
 Sb_Menu(TrayTipText)
 
 ;;TTS Settings and Options
-obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
+	Loop, 12 {
+	
+	obj_TTSVoice%A_Index% := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
+	
+	
+	
+	Alf = Microsoft Hazel Desktop
+	obj_TTSVoice := ComObjCreate("SAPI.SPVoice")
+	;obj_TTSVoice%A_Index%.Voice := Alf
+	;ARRAY_GUI(obj_TTSVoice)
+	}
 
+	Loop, % obj_TTSVoice.GetVoices.Count {
+	Name := obj_TTSVoice.GetVoices.Item(A_Index-1).GetAttribute("Name")	; 0 based
+	Msgbox, %Name%
+	
+	}
 
 	If (Settings.Bitly.login) {
 	Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
@@ -127,6 +147,12 @@ OnMessage(0x4E, "WM_NOTIFY")
 IRC := new Bot(Settings.Trigger, Settings.Greetings, Settings.Aliases, Nicks, Settings.ShowHex)
 IRC.Connect(Server.Addr, Server.Port, Nicks[1], Server.User, Server.Nick, Server.Pass)
 IRC.SendJOIN(StrSplit(Server.Channels, ",", " `t")*)
+	;If user has a LHCP-Backchannel selected
+	If (Server.LHCP_Channel != "") {
+	IRC.SendJOIN(StrSplit(Server.LHCP_Channel, ",", " `t")*)
+	LHCP_ON = 1
+	}
+
 
 myTcp := new SocketTCP()
 myTcp.bind("addr_any", 26656)
@@ -217,7 +243,10 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 	ExitApp
 	}
 	else
-		IRC.Log("ERROR: Unknown command " Match1)
+		If (LHCP_ON = 1) {
+		IRC.SendPRIVMSG(Settings.Server.LHCP_Channel, "/" . Match1)
+		}
+		;IRC.Log("ERROR: Unknown command " Match1)
 	return
 }
 
@@ -230,7 +259,7 @@ return
 
 
 GuiClose:
-ExitSub:
+Fn_EnableMultiVoice(False)
 IRC.SendQUIT("")
 ExitApp
 return
@@ -310,13 +339,20 @@ class Bot extends IRC
 	
 	UpdateDropDown(Default="")
 	{
-		DropDL := "|" this.Nick "|"
-		if (!Default)
+	global Settings
+		DropDL := "|"
+		if (!Default) {
 			GuiControlGet, Default,, Channel
-		for Channel in this.Channels
+		}
+		for Channel in this.Channels {
+			If (Settings.Server.LHCP_Channel = Channel) {
+			Continue
+			}
 			DropDL .= Channel "|" (Channel==Default ? "|" : "")
-		if (!this.Channels.hasKey(Default))
+		}
+		if (!this.Channels.hasKey(Default)) {
 			DropDL .= "|"
+		}
 		GuiControl,, Channel, % DropDL
 	}
 	
@@ -374,6 +410,11 @@ class Bot extends IRC
 	global Settings
 	
 		Channel := Params[1]
+			;LHCP 
+			If (Channel = Settings.Server.LHCP_Channel) {
+			Run, %A_ScriptDir%\plugin\LHCP\LHCP-X2.exe
+			Return
+			}
 		AppendChat(NickColor(Nick) ": " Msg)
 		
 			Fn_TTS_Go(Msg)
@@ -650,8 +691,17 @@ global Settings
 		If (InStr(TTSVar,"http")) {
 		TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")	
 		}
+		;Speak Text through Anna.dll if specified as voice
+		;If (Settings.Settings.TTSVoice = "Microsoft Anna") {
+		;DllCall("LoadLibrary", "str", "Anna.dll")
+		;DllCall("Anna.dll\speak", "Str", TTSVar)
+		;msgbox % errorlevel
+		;DllCall("Anna.dll\CleanUp")
+		;Return
+		;}
+		
 	;Speak in exe itself
-	Fn_TTS(obj_TTSVoice, "Speak", TTSVar)
+	Fn_TTS(obj_TTSVoice, "MultiSpeak", TTSVar)
 	}
 Return
 }
@@ -742,8 +792,25 @@ global
 	Settings := Ini_Read(SettingsFile)
 }
 
+Fn_EnableMultiVoice(YesNo = True)
+{
+	static AudioOut := ComObjCreate("SAPI.SPVoice").AudioOutput.ID
+	, RegKey := SubStr(AudioOut, InStr(AudioOut, "\")+1) "\Attributes"
+	
+	if YesNo
+	{
+		RegRead, OutputVar, HKCU, %RegKey%, NoSerializeAccess
+		if ErrorLevel {
+		RegWrite, REG_SZ, HKCU, %RegKey%, NoSerializeAccess
+		} ; Doesn't exist
+		return ErrorLevel
+	} else {
+		RegDelete, HKCU, %RegKey%, NoSerializeAccess
+	}
+}
+
+
 Sb_InstallFiles()
 {
-;FileCreateDir, %A_ScriptDir%\Speak\
-;FileInstall, Speak\Speak.exe, %A_ScriptDir%\Speak\Speak.exe, 1
+
 }
