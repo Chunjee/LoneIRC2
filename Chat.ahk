@@ -3,7 +3,7 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-The_Version = v1.5.1
+The_Version = v1.6
 The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -11,8 +11,6 @@ The_ProjectName = LoneIRC
 ;~~~~~~~~~~~~~~~~~~~~~
 #NoEnv
 #SingleInstance Force
-
-#Include util_arrays
 
 #Include %A_LineFile%\..\lib
 #Include Socket.ahk
@@ -30,8 +28,7 @@ The_ProjectName = LoneIRC
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 Sb_InstallFiles()
 Fn_EnableMultiVoice(True)
-
-;SetWorkingDir, %A_ScriptDir%\Data
+StaticOption_Voices = 12
 
 SettingsFile := A_ScriptDir "\Settings.ini"
 If !(Settings := Ini_Read(SettingsFile))
@@ -61,39 +58,31 @@ If !(Settings := Ini_Read(SettingsFile))
 	ExitApp
 }
 
-If (Settings.Server.Addr = "") {
-MsgBox, Server address could not be understood. Check Settings.ini before running again.
-ExitApp
-}
-
 ;Create Trayicon Menu
 TrayTipText := The_ProjectName . " - " . The_Version
 Sb_Menu(TrayTipText)
 
 ;;TTS Settings and Options
-	Loop, 12 {
-	
-	obj_TTSVoice%A_Index% := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
-	
-	
-	
-	Alf = Microsoft Hazel Desktop
-	obj_TTSVoice := ComObjCreate("SAPI.SPVoice")
-	;obj_TTSVoice%A_Index%.Voice := Alf
-	;ARRAY_GUI(obj_TTSVoice)
+	Loop, % StaticOption_Voices {
+	obj_TTSVoice%A_Index% := ComObjCreate("SAPI.SPVoice")
+	Fn_TTS(obj_TTSVoice%A_Index%, "SetVoice", Settings.Settings.TTSVoice)
 	}
 
-	Loop, % obj_TTSVoice.GetVoices.Count {
-	Name := obj_TTSVoice.GetVoices.Item(A_Index-1).GetAttribute("Name")	; 0 based
-	Msgbox, %Name%
+If (Settings.Server.Addr = "") {
+MsgBox, Server address could not be understood. Check Settings.ini before running again.
+ExitApp
+}
 	
-	}
 
-	If (Settings.Bitly.login) {
-	Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
-	}
+
+
+;Bit.ly stuff. Not needed currently
+	;If (Settings.Bitly.login) {
+	;Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
+	;}
 	;No Username set, have user choose and save
 	
+;Nick Settings
 	While (Settings.Server.Nicks = "") {
 	InputBox, Raw_UserInput, %The_ProjectName%, % A_Space . "       " . "Choose UserName",, 200, 120,
 	NickNames := Raw_UserInput . ", " . Raw_UserInput . "-"
@@ -679,19 +668,35 @@ NickColor(Nick)
 
 Fn_TTS_Go(para_Message)
 {
-global obj_TTSVoice
+global Rotation_Voice
 global Settings
-;obj_TTSVoice := Fn_TTSCreateVoice(Settings.Settings.TTSVoice)
+global obj_TTSVoice1
+global obj_TTSVoice2
+global obj_TTSVoice3
+global obj_TTSVoice4
+global obj_TTSVoice5
+global obj_TTSVoice6
+global obj_TTSVoice7
+global obj_TTSVoice8
+global obj_TTSVoice9
+global obj_TTSVoice10
+global obj_TTSVoice11
+global obj_TTSVoice12
+
+
 	If (Settings.Settings.TTSFlag = 1) {
 	TTSVar :=  "。" . para_Message
 	StringReplace, TTSVar, TTSVar, `",, All ;string end "
-	;AhkDllPath = %A_ScriptDir%\Data\AutoHotkey.dll
-	;hModule := DllCall("LoadLibrary","Str",AhkDllPath)
+
 	;DllCall(AhkDllPath "\ahkdll","Str","Speak.ahk","Str","","Str","","Cdecl UPTR")
+	
+		;Remove urls from spoken text
 		If (InStr(TTSVar,"http")) {
 		TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")	
 		}
-		;Speak Text through Anna.dll if specified as voice
+		
+		
+		;UNPROVEN - Speak Text through Anna.dll if specified as voice
 		;If (Settings.Settings.TTSVoice = "Microsoft Anna") {
 		;DllCall("LoadLibrary", "str", "Anna.dll")
 		;DllCall("Anna.dll\speak", "Str", TTSVar)
@@ -700,20 +705,21 @@ global Settings
 		;Return
 		;}
 		
-	;Speak in exe itself
-	Fn_TTS(obj_TTSVoice, "MultiSpeak", TTSVar)
+		
+	;Check that rotation is not at max
+	Rotation_Voice++
+		If (Rotation_Voice > 12) {
+		Rotation_Voice := 1
+		}
+	;Speak Now!
+	obj_TTSVoice%Rotation_Voice%.Speak(TTSVar, 0x1)
+	
+	
+	;OLD
+	;Fn_TTS(obj_TTSVoice, "MultiSpeak", TTSVar)
 	}
 Return
 }
-
-;;TTS Selected
-SelectedSpeach:
-obj_TTSVoice := Fn_TTSCreateVoice(A_ThisMenuItem)
-Settings_TTSVoice = %A_ThisMenuItem%
-IniWrite, %Settings_TTSVoice%, Settings.ini, Settings, TTSVoice
-;Re-Import Settings from file
-Settings := Ini_Read(SettingsFile)
-Return
 
 
 Sb_Menu(TipLabel)
@@ -736,6 +742,7 @@ Menu, Speach_Menu, Add, %A_LoopField%, SelectedSpeach
 	Settings.Settings.TTSVoice := FirstVoice
 	IniWrite, % Settings.Settings.TTSVoice, Settings.ini, Settings, TTSVoice
 	}
+	
 Menu, Tray, Tip , %The_ProjectName%
 Menu, Tray, NoStandard
 Menu, Tray, Add, %TipLabel%, menu_About
@@ -751,18 +758,43 @@ Menu, Options_Menu, Add, TimeStamps, menu_Toggle
 Menu, Tray, Add, Options, :Options_Menu
 Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
 Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
+;CheckMark the current TTS Voice
+Menu, Speach_Menu, Check, % Settings.Settings.TTSVoice
 
 Menu, Tray, Add, About, menu_About
 Menu, Tray, Add, Quit, menu_Quit
 Return
 
 menu_About:
-Msgbox, %The_ProjectName% - %The_Version% `nhttps://github.com/Chunjee/LoneIRC2
+Msgbox, %The_ProjectName% - %The_Version% `nhttps://github.com/Chunjee/LoneIRC
 Return
 
 menu_Quit:
 ExitApp
 }
+
+;;TTS Selected
+SelectedSpeach:
+Settings_TTSVoice = %A_ThisMenuItem%
+IniWrite, %Settings_TTSVoice%, Settings.ini, Settings, TTSVoice
+
+;Re-Import Settings from file
+Settings := Ini_Read(SettingsFile)
+;Re-set all Voices
+Sb_SetAllVoices()
+
+;Do Checkmarks for each voice
+Loop, parse, AllVoices, `n, `r
+	{
+		If (A_LoopField = Settings.Settings.TTSVoice) {
+		Fn_CheckmarkInitialize(A_LoopField, "Speach_Menu", 1)
+		} Else {
+		Fn_CheckmarkInitialize(A_LoopField, "Speach_Menu", 0)
+		}
+	}
+Return
+
+
 
 menu_Toggle:
 Fn_CheckmarkToggle(A_ThisMenuItem, A_ThisMenu)
@@ -813,4 +845,12 @@ Fn_EnableMultiVoice(YesNo = True)
 Sb_InstallFiles()
 {
 
+}
+
+Sb_SetAllVoices()
+{
+global
+	Loop, % StaticOption_Voices {
+	Fn_TTS(obj_TTSVoice%A_Index%, "SetVoice", Settings.Settings.TTSVoice)
+	}
 }
