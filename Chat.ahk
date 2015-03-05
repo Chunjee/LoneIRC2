@@ -38,7 +38,7 @@ If !(Settings := Ini_Read(SettingsFile))
 	ShowHex = 0
 	
 	[Server]
-	Addr = avarice.wa.us.synirc.net
+	Addr = chat.freenode.net
 	Port = 6667
 	Nicks = 
 	User = 
