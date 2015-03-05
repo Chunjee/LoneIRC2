@@ -685,7 +685,7 @@ global obj_TTSVoice12
 
 
 	If (Settings.Settings.TTSFlag = 1) {
-	TTSVar :=  "。" . para_Message
+	TTSVar := para_Message
 	StringReplace, TTSVar, TTSVar, `",, All ;string end "
 
 	;DllCall(AhkDllPath "\ahkdll","Str","Speak.ahk","Str","","Str","","Cdecl UPTR")
@@ -712,6 +712,7 @@ global obj_TTSVoice12
 		Rotation_Voice := 1
 		}
 	;Speak Now!
+	TTSVar := A_Space . TTSVar
 	obj_TTSVoice%Rotation_Voice%.Speak(TTSVar, 0x1)
 	
 	
