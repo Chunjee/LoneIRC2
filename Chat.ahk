@@ -420,12 +420,12 @@ class Bot extends IRC
 		. "),?)\s.*" RegExEscape(this.Nick)
 		. "(?P<Punct>[!?.]*).*$"
 		
-		; Greetings
-		if (RegExMatch(Msg, GreetEx, Match))
-		{
-			this.Chat(Channel, Match1 " " Nick . MatchPunct)
-			return
-		}
+		; Greetings holdover from bot functionality
+		;if (RegExMatch(Msg, GreetEx, Match))
+		;{
+		;	this.Chat(Channel, Match1 " " Nick . MatchPunct)
+		;	return
+		;}
 		
 		; If it is being sent to us, but not by us
 		;if (Channel == this.Nick && Nick != this.Nick)
