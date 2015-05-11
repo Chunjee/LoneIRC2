@@ -499,7 +499,7 @@ class Bot extends IRC
 	{
 		Messages := this.SendPRIVMSG(Channel, Message)
 		for each, Message in Messages
-			AppendChat(NickColor(this.Nick)  " <" Message "> ")
+			AppendChat(NickColor(this.Nick)": " Message)
 		return Messages
 	}
 
