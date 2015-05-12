@@ -143,8 +143,7 @@ IRC.SendJOIN(StrSplit(Server.Channels, ",", " `t")*)
 		LHCP_Array := json_toobj(MemoryFile)
 		MemoryFile := ;BLANK
 		} Else {
-		;Lets worry about generating Array if missing later
-		;LHCP_Array := Fn_GenerateDB()
+		LHCP_Array := Fn_GenerateDB()
 		}
 	}
 
@@ -237,11 +236,19 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 	IRC.SendQUIT("Lone IRC")
 	ExitApp
 	} Else {
-	;Sending LHCP Commands
+	;Anything else may be considered an LHCP Command
 		If (LHCP_ON = 1) {
-		;Might have to decide on clip here
+			;Is it a // one? Convert to a random selection
+			If (InStr(Match1,"/")) {
+			;Remove all "/" as they overcomplicate things
+			StringReplace, Match1, Match1, `/,, All
+			LHCP_Command := LHCP Fn_GetRandomLHCP(Match1)
+				If (LHCP_Command != "null") {
+				Match1 := LHCP_Command
+				}
+			}
 		IRC.SendPRIVMSG(Settings.Server.LHCP_Channel, "/" . Match1)
-		IRC.onPRIVMSG(IRC.Nick,IRC.User,IRC.Host,"PRIVMSG",[Settings.Server.LHCP_Channel],Message,"")
+		IRC.onPRIVMSG(IRC.Nick,IRC.User,IRC.Host,"PRIVMSG",[Settings.Server.LHCP_Channel],"/" . Match1,"")
 		}
 		;IRC.Log("ERROR: Unknown command " Match1)
 	}
@@ -420,20 +427,18 @@ class Bot extends IRC
 	{
 	global Settings
 
-		;Params[1] is the channel
+	;----------------------------------------------------------
+	;Params[1] is the channel
 
 		;Send to LHCP if in LHCP channel. Return out so no TTS
-		If (Settings.Server.LHCP_Channel != "") {
-			If (Params[1] = Settings.Server.LHCP_Channel) {
-			LHCP_arg := Fn_QuickRegEx(Msg,"^\/(\S*)")
-				If(LHCP_arg != "null") {
-				AppendChat(NickColor(Nick) ": " Msg)
-				Fn_LHCP_Go(LHCP_arg)
-				Return
-				}
+		If (Params[1] = Settings.Server.LHCP_Channel) {
+		LHCP_arg := Fn_QuickRegEx(Msg,"\/(\S*)")
+			If(LHCP_arg != "null") {
+			AppendChat(NickColor(Nick) ": " Msg)
+			Fn_LHCP_Go(LHCP_arg)
+			Return
 			}
 		}
-
 		;Send Msg to TTS and Chatbox
 		Fn_TTS_Go(Msg)
 		AppendChat(NickColor(Nick) ": " Msg)
@@ -883,13 +888,43 @@ global
 	}
 }
 
+
+Fn_GetRandomLHCP(para_Arg)
+{
+global LHCP_Array
+global StaticOption_MultiLHCP
+
+;;Make list of simple matches if user specified //command
+	;If (InStr(para_Arg,"/")) {
+	;StringReplace, para_Arg, para_Arg, `/,, All
+Temp_Array := []
+X = 0
+	Loop, % LHCP_Array.MaxIndex() {
+		If(InStr(LHCP_Array[A_Index,"Command"],para_Arg) || InStr(LHCP_Array[A_Index,"Phrase"],para_Arg)) {
+		X ++
+		Temp_Array[X,"Command"] := LHCP_Array[A_Index,"Command"]
+		Temp_Array[X,"Phrase"] := LHCP_Array[A_Index,"Phrase"]
+		Temp_Array[X,"FilePath"] := LHCP_Array[A_Index,"FilePath"]
+		}
+	}
+;Choose random out of possible matches and play it
+
+	If (Temp_Array.MaxIndex() >= 1) {
+	Random, Rand, 1, Temp_Array.MaxIndex()
+	;Fn_PlaySound(LHCP_Array[Rand,"FilePath"])
+	Return Temp_Array[Rand,"Command"]
+	}
+Return "null"
+}
+
+
 Fn_LHCP_Go(para_Arg)
 {
 global LHCP_Array
 global StaticOption_MultiLHCP
 
-	If (para_Arg = "json") {
-	;Fn_GenerateDB()
+	If (para_Arg = "jason") {
+	LHCP_Array := Fn_GenerateDB()
 	Return
 	}
 	If (para_Arg = "stop") {
@@ -897,25 +932,9 @@ global StaticOption_MultiLHCP
 	Fn_StopAllSounds(StaticOption_MultiLHCP)
 	Return
 	}
-	;;Make list of simple matches if user specified //command
-	If (InStr(para_Arg,"/")) {
-	StringReplace, para_Arg, para_Arg, `/,, All
-	Temp_Array := []
-	X = 0
-		Loop, % LHCP_Array.MaxIndex() {
-			If(InStr(LHCP_Array[A_Index,"Command"],para_Arg) || InStr(LHCP_Array[A_Index,"Phrase"],para_Arg)) {
-			X ++
-			Temp_Array[X,"Command"] := LHCP_Array[A_Index,"Command"]
-			Temp_Array[X,"Phrase"] := LHCP_Array[A_Index,"Phrase"]
-			Temp_Array[X,"FilePath"] := LHCP_Array[A_Index,"FilePath"]
-			}
-		}
-	;Choose random out of possible matches and play it
-	Random, Rand, 1, Temp_Array.MaxIndex()
-	Fn_PlaySound(LHCP_Array[Rand,"FilePath"])
-	Return 1
-	} Else {
-	;Else look for exact match on command and play it if found
+	
+	If (para_Arg) {
+	;Look for exact match on command and play it if found
 		Loop, % LHCP_Array.MaxIndex() {
 			If(para_Arg = LHCP_Array[A_Index,"Command"]) {
 			Fn_PlaySound(LHCP_Array[A_Index,"FilePath"])
@@ -923,7 +942,7 @@ global StaticOption_MultiLHCP
 			}
 		}
 	}
-Return 0
+Return "null"
 }
 
 
@@ -950,4 +969,33 @@ global
 	{
 	wmp%Rotation_WMP%.controls.stop
 	}
+}
+
+
+Fn_GenerateDB()
+{
+TempArray := []
+	
+	Total_mp3s = 0
+	Loop, %A_ScriptDir%\Data\Clips\*#*.mp3 , 1
+	{
+	Total_mp3s ++
+	}
+	
+	;Loop all mp3 files
+	Loop, %A_ScriptDir%\Data\Clips\*#*.mp3 , 1
+	{
+	Command := Fn_QuickRegEx(A_LoopFileName,"(.+)#")
+	Phrase := Fn_QuickRegEx(A_LoopFileName,"#(.+)")
+	
+		If (Command != "null" && Phrase != "null") {
+		TempArray[A_Index,"FilePath"] := A_LoopFileFullPath
+		TempArray[A_Index,"Command"] := Command
+		TempArray[A_Index,"Phrase"] := Phrase
+		}
+	}
+	;Write out the newley created Array and return it for the MAIN
+	FileDelete, %A_ScriptDir%\Data\LHCP_DataBase.json
+	FileAppend, % json_fromobj(TempArray), %A_ScriptDir%\Data\LHCP_DataBase.json
+	Return % TempArray
 }
