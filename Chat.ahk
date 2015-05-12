@@ -3,7 +3,7 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-The_Version = v1.7.2
+The_VersionNameName = v1.8 RC
 The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -31,6 +31,7 @@ Startup()
 Sb_InstallFiles()
 Fn_EnableMultiVoice(True)
 StaticOption_Voices = 12
+StaticOption_MultiLHCP = 3
 
 SettingsFile := A_ScriptDir "\Data\Settings.ini"
 If !(Settings := Ini_Read(SettingsFile))
@@ -62,7 +63,7 @@ FileCreateDir, %A_ScriptDir%\Data
 }
 
 ;Create Trayicon Menu
-TrayTipText := The_ProjectName . " - " . The_Version
+TrayTipText := The_ProjectName . " - " . The_VersionName
 Sb_Menu(TrayTipText)
 
 ;;TTS Settings and Options
@@ -75,15 +76,6 @@ If (Settings.Server.Addr = "") {
 MsgBox, Server address could not be understood. Check Settings.ini before running again.
 ExitApp
 }
-
-
-
-
-;Bit.ly stuff. Not needed currently
-	;If (Settings.Bitly.login) {
-	;Shorten(Settings.Bitly.login, Settings.Bitly.apiKey)
-	;}
-	;No Username set, have user choose and save
 
 ;Nick Settings
 	While (Settings.Server.Nicks = "") {
@@ -140,9 +132,20 @@ IRC := new Bot(Settings.Trigger, Settings.Greetings, Settings.Aliases, Nicks, Se
 IRC.Connect(Server.Addr, Server.Port, Nicks[1], Server.User, Server.Nick, Server.Pass)
 IRC.SendJOIN(StrSplit(Server.Channels, ",", " `t")*)
 	;If user has a LHCP-Backchannel selected
-	If (Server.LHCP_Channel != "" && FileExist(A_ScriptDir . "\Data\LHCP-X.exe")) {
+	If (Server.LHCP_Channel != "") {
 	IRC.SendJOIN(StrSplit(Server.LHCP_Channel, ",", " `t")*)
 	LHCP_ON = 1
+	Sb_CreateLHCP_WMPs(StaticOption_MultiLHCP)
+	
+		DataBase_Loc = %A_ScriptDir%\Data\LHCP_DataBase.json
+		If (FileExist(DataBase_Loc)) {
+		FileRead, MemoryFile, % DataBase_Loc
+		LHCP_Array := json_toobj(MemoryFile)
+		MemoryFile := ;BLANK
+		} Else {
+		;Lets worry about generating Array if missing later
+		;LHCP_Array := Fn_GenerateDB()
+		}
 	}
 
 
@@ -233,14 +236,15 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 	else if (Match1 = "quit") {
 	IRC.SendQUIT("Lone IRC")
 	ExitApp
-	}
-	else
-		;Sending LHCP Commands
+	} Else {
+	;Sending LHCP Commands
 		If (LHCP_ON = 1) {
+		;Might have to decide on clip here
 		IRC.SendPRIVMSG(Settings.Server.LHCP_Channel, "/" . Match1)
 		IRC.onPRIVMSG(IRC.Nick,IRC.User,IRC.Host,"PRIVMSG",[Settings.Server.LHCP_Channel],Message,"")
 		}
 		;IRC.Log("ERROR: Unknown command " Match1)
+	}
 	return
 }
 
@@ -424,7 +428,7 @@ class Bot extends IRC
 			LHCP_arg := Fn_QuickRegEx(Msg,"^\/(\S*)")
 				If(LHCP_arg != "null") {
 				AppendChat(NickColor(Nick) ": " Msg)
-				Run, %A_ScriptDir%\Data\LHCP-X.exe %LHCP_arg%
+				Fn_LHCP_Go(LHCP_arg)
 				Return
 				}
 			}
@@ -773,7 +777,7 @@ Menu, Tray, Add, Quit, menu_Quit
 Return
 
 menu_About:
-Msgbox, %The_ProjectName% - %The_Version% `nhttps://github.com/Chunjee/LoneIRC
+Msgbox, %The_ProjectName% - %The_VersionName% `nhttps://github.com/Chunjee/LoneIRC
 Return
 
 menu_Quit:
@@ -848,6 +852,7 @@ Fn_EnableMultiVoice(YesNo = True)
 	}
 }
 
+
 Startup()
 {
 #NoEnv
@@ -864,5 +869,85 @@ Sb_SetAllVoices()
 global
 	Loop, % StaticOption_Voices {
 	Fn_TTS(obj_TTSVoice%A_Index%, "SetVoice", Settings.Settings.TTSVoice)
+	}
+}
+
+Sb_CreateLHCP_WMPs(para_CreateNumber)
+{
+global
+
+	Loop, %para_CreateNumber%
+	{
+	wmp%A_Index% := ComObjCreate("WMPlayer.OCX")
+	Rotation_WMP := A_Index
+	}
+}
+
+Fn_LHCP_Go(para_Arg)
+{
+global LHCP_Array
+global StaticOption_MultiLHCP
+
+	If (para_Arg = "json") {
+	;Fn_GenerateDB()
+	Return
+	}
+	If (para_Arg = "stop") {
+	;Stop all Clips
+	Fn_StopAllSounds(StaticOption_MultiLHCP)
+	Return
+	}
+	;;Make list of simple matches if user specified //command
+	If (InStr(para_Arg,"/")) {
+	StringReplace, para_Arg, para_Arg, `/,, All
+	Temp_Array := []
+	X = 0
+		Loop, % LHCP_Array.MaxIndex() {
+			If(InStr(LHCP_Array[A_Index,"Command"],para_Arg) || InStr(LHCP_Array[A_Index,"Phrase"],para_Arg)) {
+			X ++
+			Temp_Array[X,"Command"] := LHCP_Array[A_Index,"Command"]
+			Temp_Array[X,"Phrase"] := LHCP_Array[A_Index,"Phrase"]
+			Temp_Array[X,"FilePath"] := LHCP_Array[A_Index,"FilePath"]
+			}
+		}
+	;Choose random out of possible matches and play it
+	Random, Rand, 1, Temp_Array.MaxIndex()
+	Fn_PlaySound(LHCP_Array[Rand,"FilePath"])
+	Return 1
+	} Else {
+	;Else look for exact match on command and play it if found
+		Loop, % LHCP_Array.MaxIndex() {
+			If(para_Arg = LHCP_Array[A_Index,"Command"]) {
+			Fn_PlaySound(LHCP_Array[A_Index,"FilePath"])
+			Return 1
+			}
+		}
+	}
+Return 0
+}
+
+
+Fn_PlaySound(para_SoundPath)
+{
+global
+
+Rotation_WMP++
+	If (Rotation_WMP > StaticOption_MultiLHCP) {
+	Rotation_WMP = 1
+	}
+	
+	wmp%Rotation_WMP%.url := para_SoundPath
+	wmp%Rotation_WMP%.controls.play
+	return wmp%Rotation_WMP%
+}
+
+
+Fn_StopAllSounds(para_StopNumber)
+{
+global
+
+	Loop, % para_StopNumber
+	{
+	wmp%Rotation_WMP%.controls.stop
 	}
 }
