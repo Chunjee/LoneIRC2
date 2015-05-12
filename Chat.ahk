@@ -243,7 +243,9 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 			;Remove all "/" as they overcomplicate things
 			StringReplace, Match1, Match1, `/,, All
 			LHCP_Command := LHCP Fn_GetRandomLHCP(Match1)
-				If (LHCP_Command != "null") {
+				If (LHCP_Command = "null") {
+				Return ;No command found
+				} Else {
 				Match1 := LHCP_Command
 				}
 			}
@@ -448,9 +450,9 @@ class Bot extends IRC
 		Fn_Chatlog(Nick, Msg)
 		}
 
-		GreetEx := "i)^((?:" this.Greetings
-		. "),?)\s.*" RegExEscape(this.Nick)
-		. "(?P<Punct>[!?.]*).*$"
+		;GreetEx := "i)^((?:" this.Greetings
+		;. "),?)\s.*" RegExEscape(this.Nick)
+		;. "(?P<Punct>[!?.]*).*$"
 
 		; Greetings holdover from bot functionality
 		;if (RegExMatch(Msg, GreetEx, Match))
@@ -897,6 +899,16 @@ global StaticOption_MultiLHCP
 ;;Make list of simple matches if user specified //command
 	;If (InStr(para_Arg,"/")) {
 	;StringReplace, para_Arg, para_Arg, `/,, All
+	
+	;Try to find an exact match first
+	Loop, % LHCP_Array.MaxIndex() {
+		If(para_Arg = LHCP_Array[A_Index,"Command"]) {
+		Fn_PlaySound(LHCP_Array[A_Index,"FilePath"])
+		Return LHCP_Array[A_Index,"Command"]
+		}
+	}
+	
+;Look for a containing match
 Temp_Array := []
 X = 0
 	Loop, % LHCP_Array.MaxIndex() {
