@@ -3,7 +3,7 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-The_VersionNameName = v1.8 RC
+The_VersionName = v1.8.2
 The_ProjectName = LoneIRC
 
 ;~~~~~~~~~~~~~~~~~~~~~
@@ -52,6 +52,7 @@ FileCreateDir, %A_ScriptDir%\Data
 	[Settings]
 	TTSVoice =
 	TTSFlag = 1
+	Volume = 70
 	TimeStampsFlag = 1
 	)
 
@@ -63,7 +64,7 @@ FileCreateDir, %A_ScriptDir%\Data
 }
 
 ;Create Trayicon Menu
-TrayTipText := The_ProjectName . " - " . The_VersionName
+TrayTipText := The_ProjectName
 Sb_Menu(TrayTipText)
 
 ;;TTS Settings and Options
@@ -221,22 +222,23 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 	{
 		IRC.SendACTION(Channel, Match2)
 		AppendChat("* " NickColor(IRC.Nick) " " Match2 " *")
-	}
-	else if (Match1 = "part")
+	} else if (Match1 = "part") {
 		IRC.SendPART(Channel, Match2)
-	else if (Match1 = "reload")
+	} else if (Match1 = "reload") {
 		Reload
-	else if (Match1 = "say")
+	} else if (Match1 = "say") {
 		IRC.SendPRIVMSG(Channel, Match2)
-	else if (Match1 = "raw")
+	} else if (Match1 = "raw") {
 		IRC._SendRaw(Match2)
-	else if (Match1 = "nick")
+	} else if (Match1 = "nick") {
 		IRC.SendNICK(Match2)
+	} else if (Match1 = "stop") {
+		Fn_StopAllSounds(StaticOption_MultiLHCP)
+	}
 	else if (Match1 = "quit") {
-	IRC.SendQUIT("Lone IRC")
-	ExitApp
-	} Else {
-	;Anything else may be considered an LHCP Command
+		IRC.SendQUIT("Lone IRC")
+		ExitApp
+	} Else { ;Anything else may be considered an LHCP Command
 		If (LHCP_ON = 1) {
 			;Is it a // one? Convert to a random selection
 			If (InStr(Match1,"/")) {
@@ -773,7 +775,9 @@ Menu, Tray, Add, Choose TTS Voice, :Speach_Menu
 
 Menu, Options_Menu, Add, TTS, menu_Toggle
 Menu, Options_Menu, Add, TimeStamps, menu_Toggle
+Menu, Options_Menu, Add, Volume, menu_Volume
 Menu, Tray, Add, Options, :Options_Menu
+
 Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
 Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
 ;CheckMark the current TTS Voice
@@ -790,6 +794,20 @@ Return
 menu_Quit:
 ExitApp
 }
+
+
+menu_Volume:
+Gui, Volume: Destroy ;Destroy GUI because it will be made again
+Gui, Volume: Add, Slider, x10 y10 w24 h200 NoTicks Line1 Page10 Thick20 Center Vertical Invert vThe_VolumeSlider gNewVolume, % Settings.Settings.Volume
+Gui, Volume: Show, w160 h220, Volume
+Gui, Volume: +owner
+Return
+
+NewVolume:
+
+IniWrite, %The_VolumeSlider%, Data\Settings.ini, Settings, Volume
+Settings := Ini_Read(SettingsFile)
+Return
 
 ;;TTS Selected
 SelectedSpeach:
@@ -830,12 +848,19 @@ Fn_CheckmarkInitialize(para_MenuItem, para_MenuName, para_Setting := 0)
 Fn_CheckmarkToggle(MenuItem, MenuName)
 {
 global
-%MenuItem%Flag := !%MenuItem%Flag ; Toggles the variable every time the function is called
+
+If (%MenuItem%Flag = "")
+{
+%MenuItem%Flag := %MenuItem%Flag
+}
+
+%MenuItem%Flag := !%MenuItem%Flag ;Toggles the variable every time the function is called
 	If (%MenuItem%Flag) {
 	Menu, %MenuName%, Check, %MenuItem%
 	} Else {
 	Menu, %MenuName%, UnCheck, %MenuItem%
 	}
+	
 	NewSetting := %MenuItem%Flag
 	IniWrite, %NewSetting%, Data\Settings.ini, Settings, %MenuItem%Flag
 	;Re-Import Settings from file
@@ -968,6 +993,7 @@ Rotation_WMP++
 	}
 	
 	wmp%Rotation_WMP%.url := para_SoundPath
+	wmp%Rotation_WMP%.settings.volume := Settings.Settings.Volume
 	wmp%Rotation_WMP%.controls.play
 	return wmp%Rotation_WMP%
 }
@@ -977,6 +1003,14 @@ Fn_StopAllSounds(para_StopNumber)
 {
 global
 
+	Loop, % para_StopNumber
+	{
+	wmp%Rotation_WMP%.controls.stop
+	}
+	Loop, % para_StopNumber
+	{
+	wmp%Rotation_WMP%.controls.stop
+	}
 	Loop, % para_StopNumber
 	{
 	wmp%Rotation_WMP%.controls.stop
