@@ -778,13 +778,20 @@ Menu, Options_Menu, Add, TimeStamps, menu_Toggle
 Menu, Options_Menu, Add, Volume, menu_Volume
 Menu, Tray, Add, Options, :Options_Menu
 
-Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
-Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
 ;CheckMark the current TTS Voice
 Menu, Speach_Menu, Check, % Settings.Settings.TTSVoice
 
+;Initialize Checkmarks
+Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
+Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
+;Initialize Options - These have to be run once because their toggles aren't smart enough
+Fn_CheckmarkToggle("TTS", "Options_Menu")
+Fn_CheckmarkToggle("Timestamps", "Options_Menu")
+
 Menu, Tray, Add, About, menu_About
 Menu, Tray, Add, Quit, menu_Quit
+
+
 Return
 
 menu_About:
