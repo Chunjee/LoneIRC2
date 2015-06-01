@@ -3,8 +3,8 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; Simple IRC Client
 ;
-The_VersionName = v1.8.2
 The_ProjectName = LoneIRC
+The_VersionName = v1.9
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
@@ -33,17 +33,18 @@ Fn_EnableMultiVoice(True)
 StaticOption_Voices = 12
 StaticOption_MultiLHCP = 3
 
-SettingsFile := A_ScriptDir "\Data\Settings.ini"
+FileCreateDir, %A_ScriptDir%\Data
+SettingsFile = %A_ScriptDir%\Data\Settings.ini
 If !(Settings := Ini_Read(SettingsFile))
 {
-FileCreateDir, %A_ScriptDir%\Data
+
 	Settings =
 	( LTrim
 	ShowHex = 0
 
 	[Server]
 	Addr = chat.freenode.net
-	Port = 6667
+	Port = 6660
 	Nicks =
 	User =
 	Pass =
@@ -54,20 +55,47 @@ FileCreateDir, %A_ScriptDir%\Data
 	TTSFlag = 1
 	Volume = 70
 	TimeStampsFlag = 1
+	CheckforUpdates = 1
 	)
 
 	File := FileOpen(SettingsFile, "w")
 	File.Write(Settings), File.Close()
 
-	MsgBox, There was a problem reading your Settings.ini file. Please fill in the newly generated Settings.ini before running again.
+	MsgBox, There was a problem reading your Settings.ini file. Please review the newly generated ...\Data\Settings.ini before running again.
 	ExitApp
 }
 
-;Create Trayicon Menu
+;;Check for updates via API
+	If (Settings.Settings.CheckforUpdates = 1) {
+	;API call to check for latest version
+	
+	Endpoint := "https://api.github.com/gists/4e75bf4b588bf0762a34"
+	LatestAPI := ComObjCreate("WinHttp.WinHttpRequest.5.1")
+	LatestAPI.Open("GET", Endpoint, False)
+	LatestAPI.Send()
+	Response := LatestAPI.ResponseText
+	The_LatestVersion := Json_ToObj(Response).files.LoneIRC_LatestVersion.content
+	
+		;;Try to update if there is a new version detected. This will involve moving the executable 
+		If (The_LatestVersion != "") {
+			If (The_VersionName != The_LatestVersion && A_IsCompiled) {
+			Msgbox, Updating to latest version: %The_LatestVersion%`n`nCheck your ...\Data\Settings.ini if you do not want to update automatically.
+			FileMove, %A_ScriptFullPath%, %A_ScriptDir%\Data\%A_ScriptName%, 1
+			Sleep 1000
+			UrlDownloadToFile, http://downloadmob.com/files/public_exe/%The_ProjectName%.exe, %A_ScriptFullPath%
+			Sleep 1000
+			Run, %A_ScriptFullPath%
+			ExitApp
+			}
+		}	
+	}
+
+	
+;;Create Trayicon Menu
 TrayTipText := The_ProjectName
 Sb_Menu(TrayTipText)
 
-;;TTS Settings and Options
+;;Create TTS Voices and Options
 	Loop, % StaticOption_Voices {
 	obj_TTSVoice%A_Index% := ComObjCreate("SAPI.SPVoice")
 	Fn_TTS(obj_TTSVoice%A_Index%, "SetVoice", Settings.Settings.TTSVoice)
@@ -132,7 +160,7 @@ OnMessage(0x4E, "WM_NOTIFY")
 IRC := new Bot(Settings.Trigger, Settings.Greetings, Settings.Aliases, Nicks, Settings.ShowHex)
 IRC.Connect(Server.Addr, Server.Port, Nicks[1], Server.User, Server.Nick, Server.Pass)
 IRC.SendJOIN(StrSplit(Server.Channels, ",", " `t")*)
-	;If user has a LHCP-Backchannel selected
+	;If user has a LHCP-Backchannel in settings
 	If (Server.LHCP_Channel != "") {
 	IRC.SendJOIN(StrSplit(Server.LHCP_Channel, ",", " `t")*)
 	LHCP_ON = 1
@@ -256,7 +284,7 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 		}
 		;IRC.Log("ERROR: Unknown command " Match1)
 	}
-	return
+	Return
 }
 
 ; Send chat and handle it
@@ -594,30 +622,28 @@ AppendChat(Message)
 		RTF := ToRTF(Message, Colors, Font)
 		}
 
+	;Redraw Chatbox with latest message
 	GuiControl, -Redraw, % Chat.hWnd
-
 	Sel := Chat.GetSel()
 	Len := Chat.GetTextLen()
 	Chat.SetSel(Len, Len)
 	Chat.SetText(RTF, ["SELECTION"])
 
-	if (1) ;(Sel.S == Len)
+	;Always scroll to bottom of Chatbox. Needs Improvement
+	If (1) ;(Sel.S == Len)
 	{
 		GuiControl, +Redraw, % Chat.hWnd
 		SendMessage(Chat.hWnd, WM_VSCROLL, SB_BOTTOM, 0)
-	}
-	else
-	{
+	} Else {
 		Chat.SetSel(Sel.S, Sel.E)
 		GuiControl, +Redraw, % Chat.hWnd
 	}
-
 	;GuiControl, MoveDraw, % Chat.hWnd ; Updates scrollbar position in WINE
 }
 
 SendMessage(hWnd, Msg, wParam, lParam)
 {
-	return DllCall("SendMessage", "UPtr", hWnd, "UInt", Msg, "UPtr", wParam, "Ptr", lParam)
+	Return DllCall("SendMessage", "UPtr", hWnd, "UInt", Msg, "UPtr", wParam, "Ptr", lParam)
 }
 
 ToRTF(Text, Colors, Font)
@@ -642,7 +668,7 @@ ToRTF(Text, Colors, Font)
 	RTF .= FontTable
 	RTF .= ColorTable
 
-	for each, Char in ["\", "{", "}", "`r", "`n"]
+	For each, Char in ["\", "{", "}", "`r", "`n"]
 		StringReplace, Text, Text, %Char%, \%Char%, All
 
 	While RegExMatch(Text, "^(.*)\x03(\d{0,2})(?:,(\d{1,2}))?(.*)$", Match)
@@ -656,25 +682,25 @@ ToRTF(Text, Colors, Font)
 	NormalFlags := "\b0\i0\ul0\cf17\highlight0\f0\fs" Font.Size*2
 
 	tBold := tItalic := tUnder := false
-	For each, Char in StrSplit(Normal . Text . Normal)
-	{
-		if (Char == Bold)
+	For each, Char in StrSplit(Normal . Text . Normal) {
+		If (Char == Bold) {
 			RTF .= ((tBold := !tBold) ? "\b1" : "\b0") " "
-		else if (Char == Italic)
+		} Else If (Char == Italic) {
 			RTF .= ((tItalic := !tItalic) ? "\i1" : "\i0") " "
-		else if (Char == Under)
+		} Else If (Char == Under) {
 			RTF .= ((tUnder := !tUnder) ? "\ul1" : "\ul0") " "
-		else if (Char == Normal)
+		} Else If (Char == Normal) {
 			RTF .= NormalFlags " ", tBold := tItalic := tUnder := False
-		else if (Asc(Char) > 0xFF)
+		} Else If (Asc(Char) > 0xFF) {
 			RTF .= "\u" Asc(Char) . Char
-		else
+		} Else {
 			RTF .= Char
+		}
 	}
-
 	RTF .= "}"
 	return RTF
 }
+
 
 GetScrollInfo(hWnd)
 {
@@ -688,6 +714,7 @@ GetScrollInfo(hWnd)
 	Pos := NumGet(SIF, 5*4, "Int")
 	return {"Min": Min, "Max": Max, "Page": Page, "Pos": Pos}
 }
+
 
 NickColor(Nick)
 {
@@ -778,20 +805,13 @@ Menu, Options_Menu, Add, TimeStamps, menu_Toggle
 Menu, Options_Menu, Add, Volume, menu_Volume
 Menu, Tray, Add, Options, :Options_Menu
 
+Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
+Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
 ;CheckMark the current TTS Voice
 Menu, Speach_Menu, Check, % Settings.Settings.TTSVoice
 
-;Initialize Checkmarks
-Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
-Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
-;Initialize Options - These have to be run once because their toggles aren't smart enough
-Fn_CheckmarkToggle("TTS", "Options_Menu")
-Fn_CheckmarkToggle("Timestamps", "Options_Menu")
-
 Menu, Tray, Add, About, menu_About
 Menu, Tray, Add, Quit, menu_Quit
-
-
 Return
 
 menu_About:
@@ -900,7 +920,7 @@ Startup()
 
 Sb_InstallFiles()
 {
-
+;Empty
 }
 
 Sb_SetAllVoices()
