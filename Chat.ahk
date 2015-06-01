@@ -44,7 +44,7 @@ If !(Settings := Ini_Read(SettingsFile))
 
 	[Server]
 	Addr = chat.freenode.net
-	Port = 6660
+	Port = 6665
 	Nicks =
 	User =
 	Pass =
@@ -53,8 +53,8 @@ If !(Settings := Ini_Read(SettingsFile))
 	[Settings]
 	TTSVoice =
 	TTSFlag = 1
-	Volume = 70
-	TimeStampsFlag = 1
+	Volume = 50
+	TimeStampsFlag = 0
 	CheckforUpdates = 1
 	)
 
@@ -264,7 +264,7 @@ if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 		Fn_StopAllSounds(StaticOption_MultiLHCP)
 	}
 	else if (Match1 = "quit") {
-		IRC.SendQUIT("Lone IRC")
+		IRC.SendQUIT("LoneIRC")
 		ExitApp
 	} Else { ;Anything else may be considered an LHCP Command
 		If (LHCP_ON = 1) {
@@ -955,7 +955,6 @@ global StaticOption_MultiLHCP
 	;Try to find an exact match first
 	Loop, % LHCP_Array.MaxIndex() {
 		If(para_Arg = LHCP_Array[A_Index,"Command"]) {
-		Fn_PlaySound(LHCP_Array[A_Index,"FilePath"])
 		Return LHCP_Array[A_Index,"Command"]
 		}
 	}
@@ -1014,6 +1013,10 @@ Fn_PlaySound(para_SoundPath)
 {
 global
 
+	If (Settings.Settings.Volume = "") {
+	Settings.Settings.Volume := 42
+	}
+
 Rotation_WMP++
 	If (Rotation_WMP > StaticOption_MultiLHCP) {
 	Rotation_WMP = 1
@@ -1022,7 +1025,7 @@ Rotation_WMP++
 	wmp%Rotation_WMP%.url := para_SoundPath
 	wmp%Rotation_WMP%.settings.volume := Settings.Settings.Volume
 	wmp%Rotation_WMP%.controls.play
-	return wmp%Rotation_WMP%
+	Return wmp%Rotation_WMP%
 }
 
 
