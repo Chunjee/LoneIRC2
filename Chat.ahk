@@ -4,7 +4,7 @@
 ; Simple IRC Client
 ;
 The_ProjectName = LoneIRC
-The_VersionName = v1.9
+The_VersionName = v1.9.1
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
@@ -322,7 +322,7 @@ class Bot extends IRC
 	global Settings
 
 		;Do nothing for LHCP-channel
-		If (Msg = Settings.Server.LHCP_Channel) {
+		If (InStr(Settings.Server.LHCP_Channel,Msg) && Msg != "") {
 		Return
 		}
 
@@ -331,7 +331,7 @@ class Bot extends IRC
 		Fn_TTS_Go("Connected")
 		this.UpdateDropDown(Params[1])
 		} Else { ;Others joining
-		AppendChat(NickColor(Nick) " has joined")
+		AppendChat(NickColor(Nick) . " has joined")
 		Fn_TTS_Go(Nick . " has joined")
 		}
 	this.UpdateListView()
