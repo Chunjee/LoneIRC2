@@ -33,4 +33,4 @@ This software is made available by the value for value model; If you got value f
 Please give me credit for my work. Chunjee - DownloadMob.com
 
 
-###### In memory of the original <a href="https://github.com/dylan904/LoneIRC"">LoneIRC</a>
+###### In memory of the original <a href="https://github.com/dylan904/LoneIRC">LoneIRC</a>
