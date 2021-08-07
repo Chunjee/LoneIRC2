@@ -3,8 +3,8 @@
 ;\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/--\--/
 ; A simple IRC client written in AutoHotkey focused on connecting to a single channel.
 ;
-The_ProjectName = LoneIRC
-The_VersionName = v1.10.0
+The_ProjectName := "LoneIRC"
+The_VersionName := "v1.11.0"
 
 ;~~~~~~~~~~~~~~~~~~~~~
 ;Compile Options
@@ -40,9 +40,8 @@ LastScrollPage = 0
 
 FileCreateDir, %A_ScriptDir%\Data
 SettingsFile = %A_ScriptDir%\Data\Settings.ini
-If !(Settings := Ini_Read(SettingsFile))
-{
-	
+if !(Settings := Ini_Read(SettingsFile)) {
+
 	Settings =
 	( LTrim
 	ShowHex = 0`n`r
@@ -62,37 +61,37 @@ If !(Settings := Ini_Read(SettingsFile))
 	TimeStampsFlag = 0`n`r
 	CheckforUpdates = 1`n`r
 	)
-	
+
 	File := FileOpen(SettingsFile, "w")
 	File.Write(Settings), File.Close()
-	
+
 	Msgbox, There was a problem reading your Settings.ini file.`n`nA new one has been generated. It can be found at ...\Data\Settings.ini`nPlease review it and confirm that your server and channel are correct before pressing "OK"`n`n`n%The_ProjectName% will restart.
 	Reload
 }
 
 ;;Check for updates via API
-If (Settings.Settings.CheckforUpdates != 0) {
+if (Settings.Settings.CheckforUpdates != 0) {
 	;API call to check for latest version
-	
+
 	Endpoint := "https://api.github.com/gists/4e75bf4b588bf0762a34"
 	LatestAPI := ComObjCreate("WinHttp.WinHttpRequest.5.1")
 	LatestAPI.Open("GET", Endpoint, False)
 	LatestAPI.Send()
 	Response := LatestAPI.ResponseText
 	The_LatestVersion := Json_ToObj(Response).files.LoneIRC_LatestVersion.content
-	
-	;;Try to update if there is a new version detected. This will involve moving the executable 
-	If (The_LatestVersion != "") {
-		If (The_VersionName != The_LatestVersion && A_IsCompiled) {
+
+	;;Try to update if there is a new version detected. This will involve moving the executable
+	if (The_LatestVersion != "") {
+		if (The_VersionName != The_LatestVersion && A_IsCompiled) {
 			Msgbox, Updating to latest version: %The_LatestVersion%`n`nCheck your ...\Data\Settings.ini if you do not want to update automatically.
 			FileMove, %A_ScriptFullPath%, %A_ScriptDir%\Data\%A_ScriptName%, 1
 			Sleep 1000
 			UrlDownloadToFile, http://downloadmob.com/files/public_exe/%The_ProjectName%.exe, %A_ScriptFullPath%
 			Sleep 1000
 			Run, %A_ScriptFullPath%
-			ExitApp
+			exitApp
 		}
-	}	
+	}
 }
 
 
@@ -101,23 +100,23 @@ TrayTipText := The_ProjectName
 Sb_Menu(TrayTipText)
 
 ;;Create TTS Voices and Options
-Loop, % StaticOption_Voices {
+loop, % StaticOption_Voices {
 	obj_TTSVoice%A_Index% := ComObjCreate("SAPI.SPVoice")
 	Fn_TTS(obj_TTSVoice%A_Index%, "SetVoice", Settings.Settings.TTSVoice)
 }
 
-If (Settings.Server.Addr = "") {
+if (Settings.Server.Addr = "") {
 	MsgBox, Server address could not be understood. Check Settings.ini before running again.
-	ExitApp
+	exitApp
 }
 
 ;Nick Settings
-While (Settings.Server.Nicks = "") {
+while (Settings.Server.Nicks = "") {
 	InputBox, Raw_UserInput, %The_ProjectName%, % A_Space . "       " . "Choose UserName",, 200, 120,
 	NickNames := Raw_UserInput . ", " . Raw_UserInput . "-"
 	Settings.Server.Nicks := NickNames
 	Settings.Server.User := Raw_UserInput
-	If (Settings.Server.Nicks != "") {
+	if (Settings.Server.Nicks != "") {
 		IniWrite, % Settings.Server.Nicks, Data\Settings.ini, Server, Nicks
 		IniWrite, % Settings.Server.User, Data\Settings.ini, Server, User
 	}
@@ -165,18 +164,18 @@ OnMessage(0x4E, "WM_NOTIFY")
 IRC := new Bot(Settings.Trigger, Settings.Greetings, Settings.Aliases, Nicks, Settings.ShowHex)
 IRC.Connect(Server.Addr, Server.Port, Nicks[1], Server.User, Server.Nick, Server.Pass)
 IRC.SendJOIN(StrSplit(Server.Channels, ",", " `t")*)
-;If user has a LHCP-Backchannel in settings
-If (Server.LHCP_Channel != "") {
+;if user has a LHCP-Backchannel in settings
+if (Server.LHCP_Channel != "") {
 	IRC.SendJOIN(StrSplit(Server.LHCP_Channel, ",", " `t")*)
 	LHCP_ON = 1
 	Sb_CreateLHCP_WMPs(StaticOption_MultiLHCP)
-	
+
 	DataBase_Loc = %A_ScriptDir%\Data\LHCP_DataBase.json
-	If (FileExist(DataBase_Loc)) {
+	if (FileExist(DataBase_Loc)) {
 		FileRead, MemoryFile, % DataBase_Loc
 		LHCP_Array := json_toobj(MemoryFile)
 		MemoryFile := ;BLANK
-	} Else {
+	} else {
 		LHCP_Array := Fn_GenerateDB()
 	}
 }
@@ -192,12 +191,10 @@ WM_NOTIFY(wParam, lParam, Msg, hWnd)
 {
 	static WM_LBUTTONDBLCLK := 0x203
 	global Chat
-	
-	if (wParam == Chat.ID)
-	{
+
+	if (wParam == Chat.ID) {
 		Msg := NumGet(lParam+A_PtrSize*2+4, "UInt")
-		if (Msg == WM_LBUTTONDBLCLK)
-		{
+		if (Msg == WM_LBUTTONDBLCLK) {
 			Min := NumGet(lParam+A_PtrSize*4+8, "Int")
 			Max := NumGet(lParam+A_PtrSize*4+12, "Int")
 			Run, % Chat.GetTextRange(Min, Max)
@@ -247,41 +244,41 @@ GuiControl,, Message ; Clear input box
 
 GuiControlGet, Channel
 
-If RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
+if RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 {
-	If (Match1 = "join")
+	if (Match1 = "join") {
 		IRC._SendRAW("JOIN " Match2)
-	Else If (Match1 = "me")
-	{
+
+	} else if (Match1 = "me") {
 		IRC.SendACTION(Channel, Match2)
 		AppendChat("* " NickColor(IRC.Nick) " " Match2 " *")
-	} Else If (Match1 = "part") {
+	} else if (Match1 = "part") {
 		IRC.SendPART(Channel, Match2)
-	} Else If (Match1 = "reload") {
+	} else if (Match1 = "reload") {
 		Reload
-	} Else If (Match1 = "w") {
+	} else if (Match1 = "w") {
 		IRC.SendPRIVMSG(Channel, Match2)
-	} Else If (Match1 = "raw") {
+	} else if (Match1 = "raw") {
 		IRC._SendRaw(Match2)
-	} Else If (Match1 = "nick") {
+	} else if (Match1 = "nick") {
 		IRC.SendNICK(Match2)
-	} Else If (Match1 = "stop") {
+	} else if (Match1 = "stop") {
 		Fn_StopAllSounds(StaticOption_MultiLHCP)
-	} Else If (Match1 = "lhcp") {
+	} else if (Match1 = "lhcp") {
 		Sb_InstallLHCP()
-	} Else If (Match1 = "quit") {
+	} else if (Match1 = "quit") {
 		IRC.SendQUIT("LoneIRC")
-		ExitApp
-	} Else { ;Anything else may be considered an LHCP Command
-		If (LHCP_ON = 1) {
+		exitApp
+	} else { ;Anything else may be considered an LHCP Command
+		if (LHCP_ON = 1) {
 			;Is it a // one? Convert to a random selection
-			If (InStr(Match1,"/")) {
+			if (InStr(Match1,"/")) {
 				;Remove all "/" as they overcomplicate things
 				StringReplace, Match1, Match1, `/,, All
 				LHCP_Command := LHCP Fn_GetRandomLHCP(Match1)
-				If (LHCP_Command = "null") {
-					Return ;No command found
-				} Else {
+				if (LHCP_Command = "null") {
+					return ;No command found
+				} else {
 					Match1 := LHCP_Command
 				}
 			}
@@ -290,25 +287,24 @@ If RegexMatch(Message, "^/([^ ]+)(?: (.+))?$", Match)
 		}
 		;IRC.Log("ERROR: Unknown command " Match1)
 	}
-	Return
+	return
 }
 
-;If it matches custom plugin trigger
-;Msgbox, 
-If (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match) && InStr(FileExist(A_ScriptDir "\Plugins"), "D"))
-{
+;if it matches custom plugin trigger
+;Msgbox,
+if (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match) && InStr(FileExist(A_ScriptDir "\Plugins"), "D")) {
 	Match1 := RegExReplace(Match1, "i)[^a-z0-9]")
 	File := "plugins\" Match1 ".ahk"
 	Param := Json_FromObj({"PRIVMSG":{"Nick":Nick,"User":User,"Host":Host
 	,"Cmd":Cmd,"Params":Params,"Msg":Msg,"Data":Data}
 	,"Plugin":{"Name":Match1,"Param":Match2,"Match":Match},"Channel":Params[1]})
-	
-	
+
+
 	;Run or run default if not found
-	If !FileExist(File) {
+	if !FileExist(File) {
 		Msgbox, % Param
 		File := "plugins\Default.ahk"
-	} Else {
+	} else {
 		Run(A_AhkPath, File, Param)
 	}
 }
@@ -316,8 +312,9 @@ If (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match) && InStr
 
 ; Send chat and handle it
 Messages := IRC.SendPRIVMSG(Channel, Message)
-for each, Message in Messages
+for each, Message in Messages {
 	IRC.onPRIVMSG(IRC.Nick,IRC.User,IRC.Host,"PRIVMSG",[Channel],Message,"")
+}
 return
 
 
@@ -325,7 +322,7 @@ return
 GuiClose:
 Fn_EnableMultiVoice(False)
 IRC.SendQUIT("")
-ExitApp
+exitApp
 return
 
 class Bot extends IRC
@@ -333,7 +330,7 @@ class Bot extends IRC
 	__New(Trigger, Greetings, Aliases, DefaultNicks, ShowHex=false)
 	{
 		;default command triggers to "!" if not specified in settings (normal)
-		If (Trigger = "") {
+		if (Trigger = "") {
 			Trigger = !
 		}
 		this.Trigger := Trigger
@@ -342,105 +339,105 @@ class Bot extends IRC
 		this.DefaultNicks := DefaultNicks
 		return base.__New(ShowHex)
 	}
-	
+
 	onMODE(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		this.UpdateListView()
 	}
-	
+
 	onJOIN(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		global Settings
-		
+
 		;Do nothing for LHCP-channel
-		If (InStr(Settings.Server.LHCP_Channel,Msg) && Msg != "") {
-			Return
+		if (InStr(Settings.Server.LHCP_Channel,Msg) && Msg != "") {
+			return
 		}
-		
-		If (Nick == this.Nick) { ;Self joining
+
+		if (Nick == this.Nick) { ;Self joining
 			AppendChat("Connected")
 			Fn_TTS_Go("Connected")
 			this.UpdateDropDown(Params[1])
-		} Else { ;Others joining
+		} else { ;Others joining
 			AppendChat(NickColor(Nick) . " has joined")
 			Fn_TTS_Go(Nick . " has joined")
 		}
 		this.UpdateListView()
 	}
-	
+
 	; RPL_ENDOFNAMES
 	on366(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		global Settings
 		;Give up if LHCP channel
-		If (Params[1] = Settings.Server.LHCP_Channel) {
-			Return
+		if (Params[1] = Settings.Server.LHCP_Channel) {
+			return
 		}
-		
+
 		this.UpdateListView()
 	}
-	
+
 	onPART(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		If (Nick == this.Nick) {
+		if (Nick == this.Nick) {
 			this.UpdateDropDown()
 		}
 		AppendChat(NickColor(Nick) . " has left " . Params[1] . "   " . (Msg ? " (" Msg ")" : ""))
 		this.UpdateListView()
 	}
-	
+
 	onNICK(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		; Can't use nick, was already handled by class
-		If (User == this.User)
+		if (User == this.User)
 			this.UpdateDropDown()
 		AppendChat(NickColor(Nick) " changed their name to " NickColor(Msg))
 		this.UpdateListView()
 	}
-	
+
 	onKICK(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		If (Params[2] == this.Nick)
+		if (Params[2] == this.Nick)
 			this.UpdateDropDown()
 		AppendChat(NickColor(Params[2]) " was kicked by " NickColor(Nick) " (" Msg ")")
 		Fn_TTS_Go("double rip " . Nick)
 		this.UpdateListView()
 	}
-	
+
 	onQUIT(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		If (Message != "") {
+		if (Message != "") {
 			AppendChat(NickColor(Nick) " has quit (" Msg ")")
-		} Else {
+		} else {
 			AppendChat(NickColor(Nick) " has quit")
 			Fn_TTS_Go("rip " . Nick)
 		}
 		this.UpdateListView()
 	}
-	
+
 	UpdateDropDown(Default="")
 	{
 		global Settings
 		DropDL := "|"
-		If (!Default) {
+		if (!Default) {
 			GuiControlGet, Default,, Channel
 		}
 		for Channel in this.Channels {
-			If (Settings.Server.LHCP_Channel = Channel) {
-				Continue
+			if (Settings.Server.LHCP_Channel = Channel) {
+				continue
 			}
 			DropDL .= Channel "|" (Channel==Default ? "|" : "")
 		}
-		If (!this.Channels.hasKey(Default)) {
+		if (!this.Channels.hasKey(Default)) {
 			DropDL .= "|"
 		}
 		GuiControl,, Channel, % DropDL
 	}
-	
+
 	UpdateListView()
 	{
 		GuiControlGet, Channel
-		
+
 		GuiControl, -Redraw, ListView
 		LV_Delete()
 		for Nick in this.GetMODE(Channel, "o")
@@ -449,141 +446,142 @@ class Bot extends IRC
 			LV_Add("", this.Prefix.Letters["v"] . Nick)
 		for Nick in this.GetMODE(Channel, "-ov") ; not opped or voiced
 			LV_Add("", Nick)
-		
+
 		;Remove any blank user lines
-		Loop % LV_GetCount() {
+		loop, % LV_GetCount() {
 			LV_GetText(RowText, A_Index, 1)
-			If (RowText = "") {
+			if (RowText = "") {
 				LV_Delete(A_Index)
 			}
 		}
 		GuiControl, +Redraw, ListView
 	}
-	
+
 	onINVITE(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		If (User == this.User)
+		if (User == this.User)
 			this.SendJOIN(Msg)
 	}
-	
+
 	onCTCP(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
-		If (Cmd = "ACTION")
+		if (Cmd = "ACTION") {
 			AppendChat("* " NickColor(Nick) . " " . Msg . " *")
-		else
+		} else {
 			this.SendCTCPReply(Nick, Cmd, "Zark off!")
+		}
 	}
-	
+
 	onNOTICE(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		;Do not show notices from server
 		;AppendChat("-" NickColor(Nick) "- " Msg)
-		If (InStr(Msg,"Looking up your hostname")) {
+		if (InStr(Msg,"Looking up your hostname")) {
 			AppendChat("Connecting...")
 		}
-		;If (InStr(Msg,"Logon News")) {
+		;if (InStr(Msg,"Logon News")) {
 		;AppendChat(Msg)
 		;}
 	}
-	
+
 	onPRIVMSG(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		global Settings
-		
+
 		;----------------------------------------------------------
 		;Params[1] is the channel
-		
-		;Send to LHCP if in LHCP channel. Return out so no TTS
-		If (Params[1] = Settings.Server.LHCP_Channel) {
+
+		;Send to LHCP if in LHCP channel. return out so no TTS
+		if (Params[1] = Settings.Server.LHCP_Channel) {
 			LHCP_arg := Fn_QuickRegEx(Msg,"\/(\S*)")
-			If(LHCP_arg != "null") {
+			if (LHCP_arg != "null") {
 				AppendChat(NickColor(Nick) ": " Msg)
 				Fn_LHCP_Go(LHCP_arg)
-				Return
+				return
 			}
 		}
 		;Send Msg to TTS and Chatbox
 		Fn_TTS_Go(Msg)
 		AppendChat(NickColor(Nick) ": " Msg)
-		
+
 		;Send message to chatlog function if applicable
-		If (Settings.Settings.ChatLogs = 1) {
+		if (Settings.Settings.ChatLogs = 1) {
 			Fn_Chatlog(Nick, Msg)
 		}
-		
+
 		;GreetEx := "i)^((?:" this.Greetings
 		;. "),?)\s.*" RegExEscape(this.Nick)
 		;. "(?P<Punct>[!?.]*).*$"
-		
+
 		; Greetings holdover from bot functionality
 		;if (RegExMatch(Msg, GreetEx, Match))
 		;{
 		;	this.Chat(Channel, Match1 " " Nick . MatchPunct)
 		;	return
 		;}
-		
-		; If it is being sent to us, but not by us
+
+		; if it is being sent to us, but not by us
 		;if (Channel == this.Nick && Nick != this.Nick)
 		;	this.SendPRIVMSG(Nick, "Hello to you, good sir")
-		
-		If Msg contains % this.Nick
+
+		if Msg contains % this.Nick
 		{
 			;SoundBeep
 			TrayTip, % this.Nick, % "<" Nick "> " Msg
 		}
-		
-		/*; If it is a command being sent by us, moved to sending area
-			If (Nick = this.Nick) {
-				If (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match) && InStr(FileExist(A_ScriptDir "\Plugins"), "D"))
+
+		/*; if it is a command being sent by us, moved to sending area
+			if (Nick = this.Nick) {
+				if (RegexMatch(Msg, "^" this.Trigger "\K(\S+)(?:\s+(.+?))?\s*$", Match) && InStr(FileExist(A_ScriptDir "\Plugins"), "D"))
 				{
 					Match1 := RegExReplace(Match1, "i)[^a-z0-9]")
 					File := "plugins\" Match1 ".ahk"
 					Param := Json_FromObj({"PRIVMSG":{"Nick":Nick,"User":User,"Host":Host
 					,"Cmd":Cmd,"Params":Params,"Msg":Msg,"Data":Data}
 					,"Plugin":{"Name":Match1,"Param":Match2,"Match":Match},"Channel":Params[1]})
-					
-					If !FileExist(File) {
+
+					if !FileExist(File) {
 						File := "plugins\Default.ahk"
-					}			
+					}
 					Run(A_AhkPath, File, Param)
 				}
 			}
 		*/
 	}
-	
+
 	OnDisconnect(Socket)
 	{
 		ChannelBuffer := []
 		for Channel in this.Channels
 			ChannelBuffer.Insert(Channel)
-		
+
 		AppendLog("Attempting to reconnect: try #1")
-		while !this.Connect(this.Server, this.Port, this.DefaultNicks[1], this.DefaultUser, this.Name, this.Pass)
-		{
+		while !this.Connect(this.Server, this.Port, this.DefaultNicks[1], this.DefaultUser, this.Name, this.Pass) {
 			Sleep, 5000
 			AppendLog("Attempting to reconnect: try #" A_Index+1)
 		}
-		
+
 		this.SendJOIN(ChannelBuffer*)
-		
+
 		this.UpdateDropDown()
 		this.UpdateListView()
 	}
-	
+
 	Chat(Channel, Message)
 	{
 		Messages := this.SendPRIVMSG(Channel, Message)
-		for each, Message in Messages
+		for each, Message in Messages {
 			AppendChat(NickColor(this.Nick)": " Message)
+		}
 		return Messages
 	}
-	
+
 	; ERR_NICKNAMEINUSE
 	on433(Nick,User,Host,Cmd,Params,Msg,Data)
 	{
 		this.Reconnect()
 	}
-	
+
 	Reconnect()
 	{
 		for Index, Nick in this.DefaultNicks
@@ -591,16 +589,16 @@ class Bot extends IRC
 				Break
 		Index := (Index >= this.DefaultNicks.MaxIndex()) ? 1 : Index+1
 		NewNick := this.DefaultNicks[Index]
-		
+
 		AppendChat(NickColor(this.Nick) " changed their nick to " NickColor(NewNick))
-		
+
 		this.SendNICK(newNick)
 		this.Nick := newNick
-		
+
 		this.UpdateDropDown()
 		this.UpdateListView()
 	}
-	
+
 	Log(Message)
 	{
 		AppendLog(Message)
@@ -614,26 +612,23 @@ AppendLog(Message)
 	, EM_GETSEL := 0xB0, WM_GETTEXTLENGTH := 0xE
 	, EM_SCROLLCARET := 0xB7
 	global hLog
-	
+
 	Message := RegExReplace(Message, "\R", "") "`r`n"
 	GuiControl, -Redraw, %hLog%
-	
+
 	VarSetCapacity(Sel, 16, 0)
 	SendMessage(hLog, EM_GETSEL, &Sel, &Sel+8)
 	Min := NumGet(Sel, 0, "UInt")
 	Max := NumGet(Sel, 8, "UInt")
-	
+
 	Len := SendMessage(hLog, WM_GETTEXTLENGTH, 0, 0)
 	SendMessage(hLog, EM_SETSEL, Len, Len)
 	SendMessage(hLog, EM_REPLACESEL, False, &Message)
-	
-	if (Min != Len)
-	{
+
+	if (Min != Len) {
 		SendMessage(hLog, EM_SETSEL, Min, Max)
 		GuiControl, +Redraw, %hLog%
-	}
-	else
-	{
+	} else {
 		GuiControl, +Redraw, %hLog%
 		SendMessage(hLog, WM_VSCROLL, SB_BOTTOM, 0)
 	}
@@ -644,55 +639,53 @@ GetScrollInfo(hwnd, fnBar, ByRef nPos=0, ByRef nTrackPos=0, ByRef nMin=0, ByRef 
 	VarSetCapacity(si, 28, 0) ; SCROLLINFO si
 	NumPut(28  , si, 0) ; si.cbSize := sizeof(SCROLLINFO)
 	NumPut(0x17, si, 4) ; si.fMask := SIF_ALL
-	
-	If (!DllCall("GetScrollInfo", "uint", hwnd, "int", fnBar, "uint", &si))
-		Return false
-	
+
+	if (!DllCall("GetScrollInfo", "uint", hwnd, "int", fnBar, "uint", &si))
+		return false
+
 	nPos        := NumGet(si, 20)
 	nTrackPos   := NumGet(si, 24)
 	nMin        := NumGet(si,  8)
 	nMax        := NumGet(si, 12)
 	nPage       := NumGet(si, 16)
-	Return true
+	return true
 }
 
 AppendChat(Message)
 {
 	global Chat, Colors, Settings, Font, LastScrollPos, LastScrollMax, LastScrollPage
 	static WM_VSCROLL := 0x115, SB_BOTTOM := 7, SB_VERT := 1
-	
+
 	Message := RegExReplace(Message, "\R", "") "`n"
 	FormatTime, TimeStamp,, [hh:mm]
-	
-	If (Settings.Settings.TimeStampsFlag = 1)
+
+	if (Settings.Settings.TimeStampsFlag = 1) {
 		RTF := ToRTF(TimeStamp " " Message, Colors, Font)
-	Else
+	} else {
 		RTF := ToRTF(Message, Colors, Font)
-	
+	}
+
 	;Redraw Chatbox with latest message
 	GuiControl, -Redraw, % Chat.hWnd
 	Sel := Chat.GetSel()
 	Len := Chat.GetTextLen()
 	Chat.SetSel(Len, Len)
 	Chat.SetText(RTF, ["SELECTION"])
-	
+
 	GetScrollInfo(Chat.hWnd, SB_VERT, ScrollPos, TrackPos, ScrollMin, ScrollMax, ScrollPage)
-	
-	;Scroll the Chatbox to the bottom if it was previously at the bottom, 
+
+	;Scroll the Chatbox to the bottom if it was previously at the bottom,
 	;or the chat window has been resized since the last message,
 	;or if the scrollbar was previously hidden.
 	;actually LastScrollPos isn't used at all, you can get rid of that one
-	If (ScrollPos + ScrollPage = LastScrollMax or ScrollPage <> LastScrollPage or LastScrollMax = 1)
-	{
+	if (ScrollPos + ScrollPage = LastScrollMax or ScrollPage <> LastScrollPage or LastScrollMax = 1) {
 		GuiControl, +Redraw, % Chat.hWnd
 		SendMessage(Chat.hWnd, WM_VSCROLL, SB_BOTTOM, 0)
-	}
-	Else
-	{
+	} else {
 		Chat.SetSel(Sel.S, Sel.E)
 		GuiControl, +Redraw, % Chat.hWnd
 	}
-	
+
 	LastScrollPos := ScrollPos
 	LastScrollMax := ScrollMax
 	LastScrollPage := ScrollPage
@@ -700,7 +693,7 @@ AppendChat(Message)
 
 SendMessage(hWnd, Msg, wParam, lParam)
 {
-	Return DllCall("SendMessage", "UPtr", hWnd, "UInt", Msg, "UPtr", wParam, "Ptr", lParam)
+	return DllCall("SendMessage", "UPtr", hWnd, "UInt", Msg, "UPtr", wParam, "Ptr", lParam)
 }
 
 ToRTF(Text, Colors, Font)
@@ -708,10 +701,9 @@ ToRTF(Text, Colors, Font)
 	FontTable := "{\fonttbl{\f0\fnil\fcharset0 "
 	FontTable .= Font.Name
 	FontTable .= ";`}}"
-	
+
 	ColorTable := "{\colortbl"
-	for each, Color in Colors
-	{
+	for each, Color in Colors {
 		Red := "0x" SubStr(Color, 1, 2)
 		Green := "0x" SubStr(Color, 3, 2)
 		Blue := "0x" SubStr(Color, 5, 2)
@@ -720,37 +712,39 @@ ToRTF(Text, Colors, Font)
 	Color := Font.Color & 0xFFFFFF
 	ColorTable .= ";\red" Color>>16&0xFF "\green" Color>>8&0xFF "\blue" Color&0xFF
 	ColorTable .= ";`}"
-	
+
 	RTF := "{\rtf"
 	RTF .= FontTable
 	RTF .= ColorTable
-	
-	For each, Char in ["\", "{", "}", "`r", "`n"]
+
+	for each, Char in ["\", "{", "}", "`r", "`n"] {
 		StringReplace, Text, Text, %Char%, \%Char%, All
-	
-	While RegExMatch(Text, "^(.*)\x03(\d{0,2})(?:,(\d{1,2}))?(.*)$", Match)
+	}
+
+	While (RegExMatch(Text, "^(.*)\x03(\d{0,2})(?:,(\d{1,2}))?(.*)$", Match)) {
 		Text := Match1 . ((Match2!="") ? "\cf" Match2+1 : "\cf1") . ((Match3!="") ? "\highlight" Match3+1 : "") " " Match4
-	
+	}
+
 	Bold := Chr(2)
 	Color := Chr(3)
 	Normal := Chr(15)
 	Italic := Chr(29)
 	Under := Chr(31)
 	NormalFlags := "\b0\i0\ul0\cf17\highlight0\f0\fs" Font.Size*2
-	
+
 	tBold := tItalic := tUnder := false
-	For each, Char in StrSplit(Normal . Text . Normal) {
-		If (Char == Bold) {
+	for each, Char in StrSplit(Normal . Text . Normal) {
+		if (Char == Bold) {
 			RTF .= ((tBold := !tBold) ? "\b1" : "\b0") " "
-		} Else If (Char == Italic) {
+		} else if (Char == Italic) {
 			RTF .= ((tItalic := !tItalic) ? "\i1" : "\i0") " "
-		} Else If (Char == Under) {
+		} else if (Char == Under) {
 			RTF .= ((tUnder := !tUnder) ? "\ul1" : "\ul0") " "
-		} Else If (Char == Normal) {
+		} else if (Char == Normal) {
 			RTF .= NormalFlags " ", tBold := tItalic := tUnder := False
-		} Else If (Asc(Char) > 0xFF) {
+		} else if (Asc(Char) > 0xFF) {
 			RTF .= "\u" Asc(Char) . Char
-		} Else {
+		} else {
 			RTF .= Char
 		}
 	}
@@ -762,11 +756,11 @@ NickColor(Nick)
 {
 	for each, Char in StrSplit(Nick)
 		Sum += Asc(Char)
-	
+
 	Color := Mod(Sum, 16)
 	if Color in 0,1,14,15
 		Color := Mod(Sum, 12) + 2
-	
+
 	return Chr(2) . Chr(3) . Color . Nick . Chr(3) . Chr(2)
 }
 
@@ -787,88 +781,88 @@ Fn_TTS_Go(para_Message)
 	global obj_TTSVoice10
 	global obj_TTSVoice11
 	global obj_TTSVoice12
-	
-	
-	If (Settings.Settings.TTSFlag = 1) {
+
+
+	if (Settings.Settings.TTSFlag = 1) {
 		TTSVar := "! " . para_Message
 		StringReplace, TTSVar, TTSVar, `",, All ;string end "
-		
+
 		;Remove urls from spoken text
-		If (InStr(TTSVar,"http")) {
+		if (InStr(TTSVar,"http")) {
 			TTSVar := RegExReplace(TTSVar, "\bhttps?:\/\/\S*", "")
 		}
 
 		;replace # with the word "hashtag"
-		If (InStr(TTSVar,"#")) {
+		if (InStr(TTSVar,"#")) {
 			TTSVar := RegExReplace(TTSVar, "\#[^ ]", "hashtag ")
 		}
-		
+
 		;Check that rotation is not at max
 		Rotation_Voice++
-		If (Rotation_Voice > 12) {
+		if (Rotation_Voice > 12) {
 			Rotation_Voice := 1
 		}
 		;Speak Now!
 		TTSVar := A_Space . TTSVar
 		obj_TTSVoice%Rotation_Voice%.Speak(TTSVar, 0x1)
 	}
-	Return
+	return
 }
 
 
 Sb_Menu(TipLabel)
 {
 	global
-	
+
 	Voice := ComObjCreate("SAPI.SpVoice")
 	AllVoices := Fn_TTS(Voice, "GetVoices")
 	Voice :=
-	
-	Loop, parse, AllVoices, `n, `r
+
+	loop, parse, AllVoices, `n, `r
 	{
 		Menu, Speach_Menu, Add, %A_LoopField%, SelectedSpeach
-		If (A_Index = 1) {
+		if (A_Index = 1) {
 			FirstVoice := A_LoopField
 		}
 	}
 	;Write New Voice to settings if no voice has been selected
-	If (Settings.Settings.TTSVoice = "") {
+	if (Settings.Settings.TTSVoice = "") {
 		Settings.Settings.TTSVoice := FirstVoice
 		IniWrite, % Settings.Settings.TTSVoice, Data\Settings.ini, Settings, TTSVoice
 	}
-	
+
 	Menu, Tray, Tip , %The_ProjectName%
 	Menu, Tray, NoStandard
 	Menu, Tray, Add, %TipLabel%, menu_About
-	If (A_IsCompiled) {
+	if (A_IsCompiled) {
 		Menu, tray, Icon, %TipLabel%, %A_ScriptDir%\%A_ScriptName%, 1, 0
 	}
-	
+
 	Menu, Tray, Add
-	If (FirstVoice != "") {
+	if (FirstVoice != "") {
 		Menu, Tray, Add, Choose TTS Voice, :Speach_Menu
 	}
-	
+
 	Menu, Options_Menu, Add, TTS, menu_Toggle
 	Menu, Options_Menu, Add, TimeStamps, menu_Toggle
 	Menu, Options_Menu, Add, Volume, menu_Volume
 	Menu, Tray, Add, Options, :Options_Menu
-	
+
 	Fn_CheckmarkInitialize("TTS", "Options_Menu", Settings.Settings.TTSFlag)
 	Fn_CheckmarkInitialize("TimeStamps", "Options_Menu", Settings.Settings.TimeStampsFlag)
 	;CheckMark the current TTS Voice
 	Menu, Speach_Menu, Check, % Settings.Settings.TTSVoice
-	
+
 	Menu, Tray, Add, About, menu_About
 	Menu, Tray, Add, Quit, menu_Quit
-	Return
-	
+	return
+
 	menu_About:
 	Msgbox, %The_ProjectName% - %The_VersionName% `nhttps://github.com/Chunjee/LoneIRC
-	Return
-	
+	return
+
 	menu_Quit:
-	ExitApp
+	exitApp
 }
 
 
@@ -877,13 +871,13 @@ Gui, Volume: Destroy ;Destroy GUI because it will be made again
 Gui, Volume: Add, Slider, x10 y10 w24 h200 NoTicks Line1 Page10 Thick20 Center Vertical Invert vThe_VolumeSlider gNewVolume, % Settings.Settings.Volume
 Gui, Volume: Show, w160 h220, Volume
 Gui, Volume: +owner
-Return
+return
 
 NewVolume:
 
 IniWrite, %The_VolumeSlider%, Data\Settings.ini, Settings, Volume
 Settings := Ini_Read(SettingsFile)
-Return
+return
 
 ;;TTS Selected
 SelectedSpeach:
@@ -896,27 +890,26 @@ Settings := Ini_Read(SettingsFile)
 Sb_SetAllVoices()
 
 ;Do Checkmarks for each voice
-Loop, parse, AllVoices, `n, `r
-{
-	If (A_LoopField = Settings.Settings.TTSVoice) {
+loop, parse, AllVoices, `n, `r {
+	if (A_LoopField = Settings.Settings.TTSVoice) {
 		Fn_CheckmarkInitialize(A_LoopField, "Speach_Menu", 1)
-	} Else {
+	} else {
 		Fn_CheckmarkInitialize(A_LoopField, "Speach_Menu", 0)
 	}
 }
-Return
+return
 
 
 
 menu_Toggle:
 Fn_CheckmarkToggle(A_ThisMenuItem, A_ThisMenu)
-Return
+return
 
 Fn_CheckmarkInitialize(para_MenuItem, para_MenuName, para_Setting := 0)
 {
-	If (para_Setting = 1) {
+	if (para_Setting = 1) {
 		Menu, %para_MenuName%, Check, %para_MenuItem%
-	} Else {
+	} else {
 		Menu, %para_MenuName%, UnCheck, %para_MenuItem%
 	}
 }
@@ -924,19 +917,18 @@ Fn_CheckmarkInitialize(para_MenuItem, para_MenuName, para_Setting := 0)
 Fn_CheckmarkToggle(MenuItem, MenuName)
 {
 	global
-	
-	If (%MenuItem%Flag = "")
-	{
+
+	if (%MenuItem%Flag = "") {
 		%MenuItem%Flag := %MenuItem%Flag
 	}
-	
+
 	%MenuItem%Flag := !%MenuItem%Flag ;Toggles the variable every time the function is called
-	If (%MenuItem%Flag) {
+	if (%MenuItem%Flag) {
 		Menu, %MenuName%, Check, %MenuItem%
-	} Else {
+	} else {
 		Menu, %MenuName%, UnCheck, %MenuItem%
 	}
-	
+
 	NewSetting := %MenuItem%Flag
 	IniWrite, %NewSetting%, Data\Settings.ini, Settings, %MenuItem%Flag
 	;Re-Import Settings from file
@@ -947,9 +939,8 @@ Fn_EnableMultiVoice(YesNo = True)
 {
 	static AudioOut := ComObjCreate("SAPI.SPVoice").AudioOutput.ID
 	, RegKey := SubStr(AudioOut, InStr(AudioOut, "\")+1) "\Attributes"
-	
-	if YesNo
-	{
+
+	if (YesNo) {
 		RegRead, OutputVar, HKCU, %RegKey%, NoSerializeAccess
 		if ErrorLevel {
 			RegWrite, REG_SZ, HKCU, %RegKey%, NoSerializeAccess
@@ -975,7 +966,7 @@ Sb_InstallFiles()
 Sb_SetAllVoices()
 {
 	global
-	Loop, % StaticOption_Voices {
+	loop, % StaticOption_Voices {
 		Fn_TTS(obj_TTSVoice%A_Index%, "SetVoice", Settings.Settings.TTSVoice)
 	}
 }
@@ -983,8 +974,8 @@ Sb_SetAllVoices()
 Sb_CreateLHCP_WMPs(para_CreateNumber)
 {
 	global
-	
-	Loop, %para_CreateNumber%
+
+	loop, %para_CreateNumber%
 	{
 		wmp%A_Index% := ComObjCreate("WMPlayer.OCX")
 		Rotation_WMP := A_Index
@@ -996,12 +987,12 @@ Sb_InstallLHCP()
 	global
 	LHCP_ON = 1
 	UrlDownloadToFile, http://downloadmob.com/files/public_exe/LHCP-X.exe, %A_ScriptDir%\Data\LHCP-X.exe
-	
+
 	;Write new settings to file and re-load
 	Settings.Server.LHCP_Channel := "#LHCP-XBeta"
 	File := FileOpen(SettingsFile, "w")
 	File.Write(Settings), File.Close()
-	
+
 	Settings := Ini_Read(SettingsFile)
 }
 
@@ -1010,23 +1001,23 @@ Fn_GetRandomLHCP(para_Arg)
 {
 	global LHCP_Array
 	global StaticOption_MultiLHCP
-	
+
 	;;Make list of simple matches if user specified //command
-	;If (InStr(para_Arg,"/")) {
+	;if (InStr(para_Arg,"/")) {
 	;StringReplace, para_Arg, para_Arg, `/,, All
-	
+
 	;Try to find an exact match first
-	Loop, % LHCP_Array.MaxIndex() {
-		If(para_Arg = LHCP_Array[A_Index,"Command"]) {
-			Return LHCP_Array[A_Index,"Command"]
+	loop, % LHCP_Array.MaxIndex() {
+		if (para_Arg = LHCP_Array[A_Index,"Command"]) {
+			return LHCP_Array[A_Index,"Command"]
 		}
 	}
-	
+
 	;Look for a containing match
 	Temp_Array := []
 	X = 0
-	Loop, % LHCP_Array.MaxIndex() {
-		If(InStr(LHCP_Array[A_Index,"Command"],para_Arg) || InStr(LHCP_Array[A_Index,"Phrase"],para_Arg)) {
+	loop, % LHCP_Array.MaxIndex() {
+		if (InStr(LHCP_Array[A_Index,"Command"],para_Arg) || InStr(LHCP_Array[A_Index,"Phrase"],para_Arg)) {
 			X ++
 			Temp_Array[X,"Command"] := LHCP_Array[A_Index,"Command"]
 			Temp_Array[X,"Phrase"] := LHCP_Array[A_Index,"Phrase"]
@@ -1034,13 +1025,13 @@ Fn_GetRandomLHCP(para_Arg)
 		}
 	}
 	;Choose random out of possible matches and play it
-	
-	If (Temp_Array.MaxIndex() >= 1) {
+
+	if (Temp_Array.MaxIndex() >= 1) {
 		Random, Rand, 1, Temp_Array.MaxIndex()
 		;Fn_PlaySound(LHCP_Array[Rand,"FilePath"])
-		Return Temp_Array[Rand,"Command"]
+		return Temp_Array[Rand,"Command"]
 	}
-	Return "null"
+	return "null"
 }
 
 
@@ -1048,64 +1039,61 @@ Fn_LHCP_Go(para_Arg)
 {
 	global LHCP_Array
 	global StaticOption_MultiLHCP
-	
-	If (para_Arg = "jason") {
+
+	if (para_Arg = "jason") {
 		LHCP_Array := Fn_GenerateDB()
-		Return
+		return
 	}
-	If (para_Arg = "stop") {
+	if (para_Arg = "stop") {
 		;Stop all Clips
 		Fn_StopAllSounds(StaticOption_MultiLHCP)
-		Return
+		return
 	}
-	
-	If (para_Arg) {
+
+	if (para_Arg) {
 		;Look for exact match on command and play it if found
-		Loop, % LHCP_Array.MaxIndex() {
-			If(para_Arg = LHCP_Array[A_Index,"Command"]) {
+		loop, % LHCP_Array.MaxIndex() {
+			if (para_Arg = LHCP_Array[A_Index,"Command"]) {
 				Fn_PlaySound(LHCP_Array[A_Index,"FilePath"])
-				Return 1
+				return 1
 			}
 		}
 	}
-	Return "null"
+	return "null"
 }
 
 
 Fn_PlaySound(para_SoundPath)
 {
 	global
-	
-	If (Settings.Settings.Volume = "") {
+
+	if (Settings.Settings.Volume = "") {
 		Settings.Settings.Volume := 42
 	}
-	
+
 	Rotation_WMP++
-	If (Rotation_WMP > StaticOption_MultiLHCP) {
+	if (Rotation_WMP > StaticOption_MultiLHCP) {
 		Rotation_WMP = 1
 	}
-	
+
 	wmp%Rotation_WMP%.url := para_SoundPath
 	wmp%Rotation_WMP%.settings.volume := Settings.Settings.Volume
 	wmp%Rotation_WMP%.controls.play
-	Return wmp%Rotation_WMP%
+	return wmp%Rotation_WMP%
 }
 
 
 Fn_StopAllSounds(para_StopNumber)
 {
 	global
-	
-	Loop, % para_StopNumber
-	{
+
+	loop, % para_StopNumber	{
 		wmp%Rotation_WMP%.controls.stop
 	}
-	Loop, % para_StopNumber
-	{
+	loop, % para_StopNumber	{
 		wmp%Rotation_WMP%.controls.stop
 	}
-	Loop, % para_StopNumber
-	{
+	loop, % para_StopNumber	{
 		wmp%Rotation_WMP%.controls.stop
 	}
 }
@@ -1114,20 +1102,18 @@ Fn_StopAllSounds(para_StopNumber)
 Fn_GenerateDB()
 {
 	TempArray := []
-	
+
 	Total_mp3s = 0
-	Loop, %A_ScriptDir%\Data\Clips\*#*.mp3 , 1
-	{
+	loop, %A_ScriptDir%\Data\Clips\*#*.mp3 , 1 {
 		Total_mp3s ++
 	}
-	
+
 	;Loop all mp3 files
-	Loop, %A_ScriptDir%\Data\Clips\*#*.mp3 , 1
-	{
+	loop, %A_ScriptDir%\Data\Clips\*#*.mp3 , 1 {
 		Command := Fn_QuickRegEx(A_LoopFileName,"(.+)#")
 		Phrase := Fn_QuickRegEx(A_LoopFileName,"#(.+)")
-		
-		If (Command != "null" && Phrase != "null") {
+
+		if (Command != "null" && Phrase != "null") {
 			TempArray[A_Index,"FilePath"] := A_LoopFileFullPath
 			TempArray[A_Index,"Command"] := Command
 			TempArray[A_Index,"Phrase"] := Phrase
@@ -1136,5 +1122,5 @@ Fn_GenerateDB()
 	;Write out the newley created Array and return it for the MAIN
 	FileDelete, %A_ScriptDir%\Data\LHCP_DataBase.json
 	FileAppend, % json_fromobj(TempArray), %A_ScriptDir%\Data\LHCP_DataBase.json
-	Return % TempArray
+	return % TempArray
 }
